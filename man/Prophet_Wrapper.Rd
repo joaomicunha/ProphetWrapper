@@ -5,7 +5,8 @@
 \title{Prophet Wrapper}
 \usage{
 Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "train",
-  plotFrom = NULL, main_accuracy_metric = "MAPE")
+  plotFrom = NULL, main_accuracy_metric = "MAPE",
+  train_set_imp_perc = 0.5)
 }
 \arguments{
 \item{df}{A data-frame with a numeric column, a date type column, a regressor and a column train (for train/test split). The 'train' column has to have 1 and 0 only where 1 refer to training set.}
@@ -24,11 +25,13 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "train",
 
 \item{holidays}{A data-frame with columns holiday (character) and ds (date type)and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. lower_window=-2 will include 2 days prior to the date as holidays. Also optionally can have a column prior_scale specifying the prior scale for each holiday. It defaults to NULL in which case no holidays are used.}
 
-\item{best_model_in}{A character value either: 'train' or 'test'. Defaults to 'train'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements.}
+\item{best_model_in}{A character value either: 'train', 'test' or 'mix_train_test'. Defaults to 'train'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements.}
 
 \item{plotFrom}{A character value ('yyyy-mm-dd') representing a date to filter the data from to plot the best model based on the 'best_model_in' parameter (actuals vs forecast).}
 
 \item{main_accuracy_metric}{A character value either: 'MAPE', 'MSE', 'MAE' or 'RMSE' (it defaults to MAPE). This defines the criteria for selecting the best model (together with the 'best_model_in' parameter).}
+
+\item{train_set_imp_perc}{A numeric input between 0 and 1 representing the weight to give to the training set results relatively to the test set. Defaults to 0.5 (mean results). This parameter only affects the results when 'best_model_in' is set to 'mix_train_test'. When set to 1 the results are the same as setting 'best_model_in' to 'train'.}
 }
 \value{
 This function returns a list with 3 elements:
@@ -62,7 +65,8 @@ test = Prophet_Wrapper(df = df_example,
                     list_params = parameters,
                     holidays = holidays,
                     best_model_in = "train",
-                    main_accuracy_metric = "MAPE")
+                    main_accuracy_metric = "MAPE",
+                    train_set_imp_perc = 0.5)
 
 }
 

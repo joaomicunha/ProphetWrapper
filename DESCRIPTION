@@ -5,7 +5,9 @@ Version: 0.1.0
 Author: Joao Cunha
 Maintainer: Joao Cunha <joaocunha11@hotmail.com>
 Description: ProphetWrapper package is a package wrapper for Prophet allowing easier use and extra functionality such as parameter tunning
-    magrittr
+Imports:
+    magrittr, 
+    prophet
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

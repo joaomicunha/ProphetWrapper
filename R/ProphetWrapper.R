@@ -19,7 +19,8 @@
 #'  \item{\strong{standardize_regressor}}  {Bool, specify whether this regressor will be standardized prior to fitting. Can be 'auto' (standardize if not binary), True, or False.}
 #'  \item{\strong{log_transformation}}  {Bool, specify whether the Target Variable will be log transformed pre-fitting the models or not.}
 #' }
-#' @param best_model_in A character value either: 'train' or 'test'. Defaults to 'train'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements.
+#' @param best_model_in A character value either: 'train', 'test' or 'mix_train_test'. Defaults to 'train'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements.
+#' @param train_set_imp_perc A numeric input between 0 and 1 representing the weight to give to the training set results relatively to the test set. Defaults to 0.5 (mean results). This parameter only affects the results when 'best_model_in' is set to 'mix_train_test'. When set to 1 the results are the same as setting 'best_model_in' to 'train'.
 #' @param main_accuracy_metric A character value either: 'MAPE', 'MSE', 'MAE' or 'RMSE' (it defaults to MAPE). This defines the criteria for selecting the best model (together with the 'best_model_in' parameter).
 #' @param holidays A data-frame with columns holiday (character) and ds (date type)and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. lower_window=-2 will include 2 days prior to the date as holidays. Also optionally can have a column prior_scale specifying the prior scale for each holiday. It defaults to NULL in which case no holidays are used.
 #' @param plotFrom A character value ('yyyy-mm-dd') representing a date to filter the data from to plot the best model based on the 'best_model_in' parameter (actuals vs forecast).
@@ -53,7 +54,8 @@
 #'                     list_params = parameters,
 #'                     holidays = holidays,
 #'                     best_model_in = "train",
-#'                     main_accuracy_metric = "MAPE")
+#'                     main_accuracy_metric = "MAPE",
+#'                     train_set_imp_perc = 0.5)
 #'
 #'}
 #'
@@ -65,7 +67,7 @@
 
 
 
-Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "train", plotFrom = NULL, main_accuracy_metric = "MAPE"){
+Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "train", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5){
 
   is.date <- function(x) inherits(x, 'Date')
 
@@ -115,8 +117,12 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
     }
   }
 
-  if(best_model_in != "train" & best_model_in != "test"){
-    stop("The 'best_model_in' argument has to be either 'train' or 'test'.")
+  if(best_model_in != "train" & best_model_in != "test" & best_model_in != "mix_train_test" ){
+    stop("The 'best_model_in' argument has to be either 'train', 'test' or 'mix_train_test'.")
+  }
+
+  if(train_set_imp_perc > 1  & train_set_imp_perc <0 ){
+    stop("The 'train_set_imp_perc' argument has to have a value between 0 and 1.")
   }
 
   if(main_accuracy_metric != "MAPE" & main_accuracy_metric != "MSE" & main_accuracy_metric != "MAE" & main_accuracy_metric != "RMSE"){
@@ -189,6 +195,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
       #####Models
 
+      browser()
+
       if(is.null(holidays)){
 
         model = prophet::prophet(df = df_train,
@@ -213,7 +221,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
       model <- prophet::add_regressor(model, list_params$regressor, standardize = list_params$standardize_regressor, prior.scale = y)
       model = prophet::fit.prophet(model, df = df_train)
 
-      future_prophet_complete = prophet::make_future_dataframe(model, periods = 35) %>%
+      future_prophet_complete = prophet::make_future_dataframe(model, periods = nrow(df_test)) %>%
         dplyr::mutate(ds = as.Date(ds)) %>%
         dplyr::left_join(original, by = c("ds" = "Date"))
 
@@ -224,18 +232,18 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
       test = data.frame( Error_Type = "Test Set",
                          changepoint.prior.scale = x,
                          regressor.prior.scale = y,
-                         MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[forecast$ds >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                         MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[forecast$ds >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                         MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[forecast$ds >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                         RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[forecast$ds >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)))
+                         MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
+                         MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
+                         MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
+                         RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)))
 
       train = data.frame( Error_Type = "Train Set",
                           changepoint.prior.scale = x,
                           regressor.prior.scale = y,
-                          MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[forecast$ds < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                          MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[forecast$ds < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                          MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[forecast$ds < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                          RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[forecast$ds < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)))
+                          MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
+                          MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
+                          MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
+                          RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)))
 
       df_accuracy = dplyr::bind_rows(test, train)
 
@@ -298,17 +306,34 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
     plotFrom = as.Date(plotFrom)
   }
 
-  accuracies = invisible(final[1:unique_combinations] %>%
-                           dplyr::bind_rows() %>%
-                           dplyr::filter(grepl(pattern = best_model_in, x = Error_Type, ignore.case = TRUE)) %>%
-                           dplyr::arrange(!!rlang::sym(main_accuracy_metric)) %>%
-                           dplyr::select(changepoint.prior.scale,
-                                  regressor.prior.scale) %>%
-                           head(1))
+  #identify the best model based on best_model_in parameter:
+
+  if(best_model_in != "mix_train_test"){
+    accuracies = invisible(final[1:unique_combinations] %>%
+                             dplyr::bind_rows() %>%
+                             dplyr::filter(grepl(pattern = best_model_in, x = Error_Type, ignore.case = TRUE)) %>%
+                             dplyr::arrange(MAPE) %>%
+                             dplyr::select(changepoint.prior.scale,
+                                    regressor.prior.scale) %>%
+                             head(1))
+
+  }else{
+
+    accuracies = final[1:unique_combinations] %>%
+      dplyr::bind_rows() %>%
+      dplyr::filter(grepl(pattern = "test|train", x = Error_Type, ignore.case = TRUE)) %>%
+      select(Error_Type, changepoint.prior.scale, regressor.prior.scale, !!main_accuracy_metric) %>%
+      tidyr::spread(key = Error_Type, !!main_accuracy_metric) %>%
+      dplyr::mutate(avg_accuracy_metric = (`Train Set` * train_set_imp_perc  + `Test Set` * (1- train_set_imp_perc)  )) %>%
+      dplyr::arrange(avg_accuracy_metric) %>%
+      dplyr::select(changepoint.prior.scale, regressor.prior.scale) %>%
+      head(1)
+
+  }
 
   accuracies_graph = final[1:unique_combinations] %>%
     dplyr::bind_rows() %>%
-    dplyr::filter(changepoint.prior.scale = accuracies$changepoint.prior.scale, regressor.prior.scale = accuracies$regressor.prior.scale)
+    dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale, regressor.prior.scale == accuracies$regressor.prior.scale)
 
   df = invisible(final[(unique_combinations + 1):(unique_combinations*2)] %>%
                    dplyr::bind_rows() %>%
@@ -318,11 +343,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                    dplyr::filter(Date >= as.Date(plotFrom)))
 
   graph1 = ggplot2::ggplot(df, ggplot2::aes(x = as.Date(Date), y = Volumes, color = `Actuals vs Forecast`, linetype = `Actuals vs Forecast`)) +
-    gplot2::geom_line() +
+    ggplot2::geom_line() +
     ggplot2::geom_vline(ggplot2::aes(xintercept = as.numeric(max(df_train$ds))), linetype = 4, colour = "#40dfad", alpha = 0.7) +
     ggthemes::theme_tufte() +
-    gplot2::scale_y_continuous(labels = scales::comma_format()) +
-    gplot2::scale_x_date(breaks = scales::date_breaks("2 months")) +
+    ggplot2::scale_y_continuous(labels = scales::comma_format()) +
+    ggplot2::scale_x_date(breaks = scales::date_breaks("2 months")) +
     ggthemes::scale_color_stata()
 
   graph2 = invisible(gridExtra::tableGrob(accuracies_graph, rows = NULL))
@@ -331,8 +356,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
 
 
-  list(Accuracy_Overview = invisible(final[1:unique_combinations] %>% dplyr::bind_rows()),
+  list(Accuracy_Overview = invisible(final[1:unique_combinations] %>% dplyr::bind_rows() %>% dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale, 1, 0))),
        Actuals_vs_Predictions = invisible(final[(unique_combinations + 1):(unique_combinations*2)] %>% dplyr::bind_rows()),
+
        Plot_Actual_Predictions = graph1)
 
 
