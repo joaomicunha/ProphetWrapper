@@ -195,8 +195,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
       #####Models
 
-      browser()
-
       if(is.null(holidays)){
 
         model = prophet::prophet(df = df_train,
@@ -262,10 +260,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                                                    yhat = exp(yhat_log),
                                                    yhat_lower = exp(yhat_lower_log),
                                                    yhat_upper = exp(yhat_upper_log),
-                                                   diff = abs(actuals - yhat)/actuals,
+                                                   diff_abs = abs(actuals - yhat)/actuals,
+                                                   diff = (actuals - yhat)/actuals,
                                                    changepoint.prior.scale = x,
                                                    regressor.prior.scale = y) %>%
-                                                   dplyr::select(Date, changepoint.prior.scale, regressor.prior.scale, actuals, actuals_log, yhat, yhat_log, yhat_lower_log, yhat_upper_log, yhat_lower, yhat_upper, diff, WeekDay)")
+                                                   dplyr::select(Date, changepoint.prior.scale, regressor.prior.scale, actuals, actuals_log, yhat, yhat_log, yhat_lower_log, yhat_upper_log, yhat_lower, yhat_upper, diff_abs, diff, WeekDay)")
 
         actuals_vs_forecast = eval(parse(text = actuals_vs_forecast_with_log_expr))
 
@@ -274,10 +273,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                                                    dplyr::mutate(WeekDay = weekdays.Date(ds),
                                                    Holiday = (as.Date(ds) %in% as.Date(holiday_dates)),
                                                    actuals = c(df_train$y, df_test$y),
-                                                   diff = abs(actuals - yhat)/actuals,
+                                                   diff_abs = abs(actuals - yhat)/actuals,
+                                                   diff = (actuals - yhat)/actuals,
                                                    changepoint.prior.scale = x,
                                                    regressor.prior.scale = y) %>%
-                                                   dplyr::select(ds, changepoint.prior.scale, regressor.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff, WeekDay) %>%
+                                                   dplyr::select(ds, changepoint.prior.scale, regressor.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay) %>%
                                                    dplyr::rename(Date = ds)")
 
         actuals_vs_forecast = eval(parse(text = actuals_vs_forecast_with_log_expr))
@@ -358,7 +358,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
   list(Accuracy_Overview = invisible(final[1:unique_combinations] %>% dplyr::bind_rows() %>% dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale, 1, 0))),
        Actuals_vs_Predictions = invisible(final[(unique_combinations + 1):(unique_combinations*2)] %>% dplyr::bind_rows()),
-
        Plot_Actual_Predictions = graph1)
 
 
