@@ -7,7 +7,16 @@ Maintainer: Joao Cunha <joaocunha11@hotmail.com>
 Description: ProphetWrapper package is a package wrapper for Prophet allowing easier use and extra functionality such as parameter tunning
 Imports:
     magrittr, 
-    prophet
+    prophet, 
+    MLmetrics,
+    dplyr, 
+    ggplot2,
+    ggthemes, 
+    gridExtra, 
+    padr,
+    scales,
+    tidyr, 
+    Rcpp
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
