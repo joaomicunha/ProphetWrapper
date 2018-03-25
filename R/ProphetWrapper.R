@@ -318,6 +318,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
   #~~~ Prepare the Output by reducing the lists and creating a graph of actuals vs forecasts for the best model in terms of 'best_model_in' =================================================================
 
+
   final <- unlist(unlist(final, recursive = FALSE), recursive = FALSE)
   final <- do.call("rbind", final)
 
@@ -335,7 +336,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
     accuracies = invisible(final[1:unique_combinations] %>%
                              dplyr::bind_rows() %>%
                              dplyr::filter(grepl(pattern = best_model_in, x = Error_Type, ignore.case = TRUE)) %>%
-                             dplyr::arrange(MAPE) %>%
+                             dplyr::arrange(!!rlang::sym(main_accuracy_metric)) %>%
                              dplyr::select(changepoint.prior.scale,
                                            regressor.prior.scale,
                                            regressor) %>%
@@ -346,11 +347,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
     accuracies = final[1:unique_combinations] %>%
       dplyr::bind_rows() %>%
       dplyr::filter(grepl(pattern = "test|train", x = Error_Type, ignore.case = TRUE)) %>%
-      select(Error_Type, changepoint.prior.scale, regressor.prior.scale, regressor, !!main_accuracy_metric) %>%
+      dplyr::select(Error_Type, changepoint.prior.scale, regressor.prior.scale, regressor, !!main_accuracy_metric) %>%
       tidyr::spread(key = Error_Type, !!main_accuracy_metric) %>%
       dplyr::mutate(avg_accuracy_metric = (`Train Set` * train_set_imp_perc  + `Test Set` * (1- train_set_imp_perc)  )) %>%
       dplyr::arrange(avg_accuracy_metric) %>%
-      dplyr::select(changepoint.prior.scale, regressor.prior.scale) %>%
+      dplyr::select(changepoint.prior.scale, regressor.prior.scale, regressor) %>%
       head(1)
 
   }
