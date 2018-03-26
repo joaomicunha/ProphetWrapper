@@ -184,7 +184,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
   if(is.null(list_params$regressor.prior.scale) & !is.null(list_params$holidays.prior.scale) & list_params$regressor == "no_regressor"){list_params$regressor.prior.scale = 10; cat("Defaulting regressor.prior.scale to 10 ...\n\n")}
 
-  if(is.null(list_params$holidays.prior.scale)){list_params$holidays.prior.scale = 10; cat("Defaulting holidays.prior.scale to 10")}
+  if(is.null(list_params$holidays.prior.scale)){list_params$holidays.prior.scale = 10; cat("Defaulting holidays.prior.scale to 10 ... \n\n")}
 
 
   #~~~ Printing Informative Messeges =================================================================
@@ -204,6 +204,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
   df_train = original %>%
     padr::pad(interval = "day") %>%
     dplyr::mutate(
+      target_var = ifelse(target_var == 0 & list_params$log_transformation, target_var + 1, target_var),
       ds = Date,
       y = eval(parse(text = log_transf))) %>%
     dplyr::filter(train == 1)
@@ -211,6 +212,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
   df_test = original %>%
     padr::pad(interval = "day") %>%
     dplyr::mutate(
+      target_var = ifelse(target_var == 0 & list_params$log_transformation, target_var + 1, target_var),
       ds = Date,
       y = eval(parse(text = log_transf))) %>%
     dplyr::filter(train == 0)
