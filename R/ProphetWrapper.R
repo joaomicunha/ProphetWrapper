@@ -225,7 +225,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
         lapply(list_params$holidays.prior.scale, function(w){
 
-
       #####Models
 
       if(is.null(holidays)){
@@ -266,31 +265,69 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
 
       #####outputs
-      test = data.frame( Error_Type = "Test Set",
-                         regressor = z,
-                         changepoint.prior.scale = x,
-                         regressor.prior.scale = y,
-                         holidays.prior.scale = w,
-                         MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                         MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                         MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                         RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                         stringsAsFactors = FALSE)
 
-      train = data.frame( Error_Type = "Train Set",
-                          regressor = z,
-                          changepoint.prior.scale = x,
-                          regressor.prior.scale = y,
-                          holidays.prior.scale = w,
-                          MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                          MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                          MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                          RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                          stringsAsFactors = FALSE)
+      if(list_params$log_transformation){
+        test = data.frame( Error_Type = "Test Set",
+                           regressor = z,
+                           changepoint.prior.scale = x,
+                           regressor.prior.scale = y,
+                           holidays.prior.scale = w,
+                           MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
+                           MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
+                           MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
+                           RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
+                           stringsAsFactors = FALSE)
+
+        train = data.frame( Error_Type = "Train Set",
+                            regressor = z,
+                            changepoint.prior.scale = x,
+                            regressor.prior.scale = y,
+                            holidays.prior.scale = w,
+                            MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
+                            MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
+                            MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
+                            RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
+                            stringsAsFactors = FALSE)
+
+      }else{
+
+        test = data.frame( Error_Type = "Test Set",
+                           regressor = z,
+                           changepoint.prior.scale = x,
+                           regressor.prior.scale = y,
+                           holidays.prior.scale = w,
+                           MAPE = MLmetrics::MAPE(y_pred = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))], y_true = df_test$y),
+                           MSE = MLmetrics::MSE(y_pred = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))], y_true = df_test$y),
+                           MAE = MLmetrics::MAE(y_pred = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))], y_true = df_test$y),
+                           RMSE = MLmetrics::RMSE(y_pred = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))], y_true = df_test$y),
+                           stringsAsFactors = FALSE)
+
+        train = data.frame( Error_Type = "Train Set",
+                            regressor = z,
+                            changepoint.prior.scale = x,
+                            regressor.prior.scale = y,
+                            holidays.prior.scale = w,
+                            MAPE = MLmetrics::MAPE(y_pred = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))], y_true = df_train$y),
+                            MSE = MLmetrics::MSE(y_pred = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))], y_true = df_train$y),
+                            MAE = MLmetrics::MAE(y_pred = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))], y_true = df_train$y),
+                            RMSE = MLmetrics::RMSE(y_pred = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))], y_true = df_train$y),
+                            stringsAsFactors = FALSE)
+
+      }
 
       df_accuracy = dplyr::bind_rows(test, train)
 
       holiday_dates = unique(holidays$ds)
+
+      if(!is.null(holidays)){
+        map_holidays = "Holiday = (as.Date(ds) %in% as.Date(holiday_dates)), "
+        select_holidays_no_log = " dplyr::select(ds, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, Holiday) %>% "
+        select_holidays_log = " dplyr::select(Date, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, actuals_log, yhat, yhat_log, yhat_lower_log, yhat_upper_log, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, Holiday) "
+      }else{
+        map_holidays = ""
+        select_holidays_no_log = " dplyr::select(ds, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay) %>% "
+        select_holidays_log = " dplyr::select(Date, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, actuals_log, yhat, yhat_log, yhat_lower_log, yhat_upper_log, yhat_lower, yhat_upper, diff_abs, diff, WeekDay) "
+      }
 
       if(list_params$log_transformation){
         actuals_vs_forecast_with_log_expr = paste0("forecast %>%
@@ -298,9 +335,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                                                    yhat_upper_log = yhat_upper,
                                                    yhat_lower_log = yhat_lower,
                                                    yhat_log = yhat) %>%
-                                                   dplyr::mutate(WeekDay = weekdays.Date(Date),
-                                                   Holiday = (as.Date(Date) %in% as.Date(holiday_dates)),
-                                                   actuals = exp(c(df_train$y, df_test$y)),
+                                                   dplyr::mutate(WeekDay = weekdays.Date(Date),",
+                                                   map_holidays,
+                                                   "actuals = exp(c(df_train$y, df_test$y)),
                                                    actuals_log = c(df_train$y, df_test$y),
                                                    yhat = exp(yhat_log),
                                                    yhat_lower = exp(yhat_lower_log),
@@ -310,24 +347,26 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                                                    changepoint.prior.scale = x,
                                                    regressor.prior.scale = y,
                                                    holidays.prior.scale = w,
-                                                   regressor = z) %>%
-                                                   dplyr::select(Date, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, actuals_log, yhat, yhat_log, yhat_lower_log, yhat_upper_log, yhat_lower, yhat_upper, diff_abs, diff, WeekDay)")
+                                                   regressor = z) %>%",
+                                                   select_holidays_log
+                                                   )
 
         actuals_vs_forecast = eval(parse(text = actuals_vs_forecast_with_log_expr))
 
       }else{
+
         actuals_vs_forecast_with_log_expr = paste0("forecast %>%
-                                                   dplyr::mutate(WeekDay = weekdays.Date(ds),
-                                                   Holiday = (as.Date(ds) %in% as.Date(holiday_dates)),
-                                                   actuals = c(df_train$y, df_test$y),
+                                                   dplyr::mutate(WeekDay = weekdays.Date(ds),",
+                                                   map_holidays,
+                                                   "actuals = c(df_train$y, df_test$y),
                                                    diff_abs = abs(actuals - yhat)/actuals,
                                                    diff = (actuals - yhat)/actuals,
                                                    regressor = z,
                                                    changepoint.prior.scale = x,
                                                    regressor.prior.scale = y,
-                                                   holidays.prior.scale = w) %>%
-                                                   dplyr::select(ds, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay) %>%
-                                                   dplyr::rename(Date = ds)")
+                                                   holidays.prior.scale = w) %>%",
+                                                   select_holidays_no_log,
+                                                   "dplyr::rename(Date = ds)")
 
         actuals_vs_forecast = eval(parse(text = actuals_vs_forecast_with_log_expr))
       }
