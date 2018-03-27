@@ -204,7 +204,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
   df_train = original %>%
     padr::pad(interval = "day") %>%
     dplyr::mutate(
-      target_var = ifelse(target_var == 0 & list_params$log_transformation, target_var + 1, target_var),
+      target_var = ifelse(target_var == 0 & list_params$log_transformation, mean(target_var), target_var),
       ds = Date,
       y = eval(parse(text = log_transf))) %>%
     dplyr::filter(train == 1)
@@ -212,7 +212,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
   df_test = original %>%
     padr::pad(interval = "day") %>%
     dplyr::mutate(
-      target_var = ifelse(target_var == 0 & list_params$log_transformation, target_var + 1, target_var),
+      target_var = ifelse(target_var == 0 & list_params$log_transformation, mean(target_var), target_var),
       ds = Date,
       y = eval(parse(text = log_transf))) %>%
     dplyr::filter(train == 0)
@@ -322,12 +322,12 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
       holiday_dates = unique(holidays$ds)
 
       if(!is.null(holidays)){
-        map_holidays = "Holiday = (as.Date(ds) %in% as.Date(holiday_dates)), "
-        select_holidays_no_log = " dplyr::select(ds, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, Holiday) %>% "
+        map_holidays = "Holiday = (as.Date(Date) %in% as.Date(holiday_dates)), "
+        select_holidays_no_log = " dplyr::select(Date, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, Holiday)"
         select_holidays_log = " dplyr::select(Date, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, actuals_log, yhat, yhat_log, yhat_lower_log, yhat_upper_log, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, Holiday) "
       }else{
         map_holidays = ""
-        select_holidays_no_log = " dplyr::select(ds, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay) %>% "
+        select_holidays_no_log = " dplyr::select(Date, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay)"
         select_holidays_log = " dplyr::select(Date, regressor, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, actuals_log, yhat, yhat_log, yhat_lower_log, yhat_upper_log, yhat_lower, yhat_upper, diff_abs, diff, WeekDay) "
       }
 
@@ -358,7 +358,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
       }else{
 
         actuals_vs_forecast_with_log_expr = paste0("forecast %>%
-                                                   dplyr::mutate(WeekDay = weekdays.Date(ds),",
+                                                   dplyr::rename(Date = ds) %>%
+                                                   dplyr::mutate(WeekDay = weekdays.Date(Date),",
                                                    map_holidays,
                                                    "actuals = c(df_train$y, df_test$y),
                                                    diff_abs = abs(actuals - yhat)/actuals,
@@ -367,8 +368,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                                                    changepoint.prior.scale = x,
                                                    regressor.prior.scale = y,
                                                    holidays.prior.scale = w) %>%",
-                                                   select_holidays_no_log,
-                                                   "dplyr::rename(Date = ds)")
+                                                   select_holidays_no_log)
 
         actuals_vs_forecast = eval(parse(text = actuals_vs_forecast_with_log_expr))
       }
