@@ -12,7 +12,7 @@
 #'  \itemize{
 #'  \item{\strong{target_variable}}  {The name of the target variable to predict. Has to be included in df.}
 #'  \item{\strong{changepoint.prior.scale}}  {A regularization parameter (vector or single value) for the automatic changepoint definitions of Prophet to define piecewise trend blocks. If the trend changes are being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the trend more flexible.}
-#'  \item{\strong{regressor.prior.scale}}  {A regularization parameter (vector or single value) for the external regressor. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the trend more flexible.}
+#'  \item{\strong{regressor.prior.scale}}  {A regularization parameter (vector or single value) for the external regressor. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the effect of regressor more flexible more flexible.}
 #'  \item{\strong{holidays.prior.scale}}   {A regularization parameter (vector or single value) for the holidays effects. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default this parameter is 10, which provides very little regularization. Reducing this parameter dampens holiday effects. Increasing it will make the trend more flexible.}
 #'  \item{\strong{weekly.seasonality}}  {Fit weekly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
 #'  \item{\strong{yearly.seasonality}}  {Fit yearly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
@@ -24,6 +24,7 @@
 #' @param train_set_imp_perc A numeric input between 0 and 1 representing the weight to give to the training set results relatively to the test set. Defaults to 0.5 (mean results). This parameter only affects the results when 'best_model_in' is set to 'mix_train_test'. When set to 1 the results are the same as setting 'best_model_in' to 'train'.
 #' @param main_accuracy_metric A character value either: 'MAPE', 'MSE', 'MAE' or 'RMSE' (it defaults to MAPE). This defines the criteria for selecting the best model (together with the 'best_model_in' parameter).
 #' @param holidays A data-frame with columns holiday (character) and ds (date type)and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. lower_window=-2 will include 2 days prior to the date as holidays. Also optionally can have a column prior_scale specifying the prior scale for each holiday. It defaults to NULL in which case no holidays are used.
+#' @param judgmental_forecasts A names vector with the date as name and the value of the judmental forecast. For example if we know that allways on the xmas day the value we are trying to predict is zero we can parse judgmental_forecasts = c('2016-12-25' = 1,  '2017-12-25' = 1, '2018-12-25' = 1). If the judgemental forecast is zero don't parse the value zero and parse 1 instead. This will facilitate with log transformations.
 #' @param plotFrom A character value ('yyyy-mm-dd') representing a date to filter the data from to plot the best model based on the 'best_model_in' parameter (actuals vs forecast).
 #'
 #' @return This function returns a list with 3 elements:
@@ -68,7 +69,7 @@
 
 
 
-Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "train", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5){
+Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "train", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5, judgmental_forecasts = NULL){
 
   is.date <- function(x) inherits(x, 'Date')
 
@@ -174,6 +175,18 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
     stop("The 'list_params$holidays.prior.scale' argument has to be a numeric vector.")
   }
 
+  if(sum(!is.null(judgmental_forecasts))> 0){
+
+    cond = tryCatch(as.Date(names(judgmental_forecasts)),
+             error = function(e){
+               stop("The judgmental_forecasts parameter has to be a named character vector where the names can be tranformed to Dates. If necessary please check documentation for an example.")
+             })
+  }
+
+  if(sum(!is.null(judgmental_forecasts))> 0 & !is.numeric(judgmental_forecasts)){
+    stop("The judgmental_forecasts parameter has to have numeric values.  If necessary please check documentation for an example.")
+  }
+
   #~~~ Defaulting Parameters =========================================================================
 
   if(is.null(list_params$changepoint.prior.scale)){list_params$changepoint.prior.scale = 0.05; cat("Defaulting changepoint.prior.scale to 0.05 ...\n\n")}
@@ -204,7 +217,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
   df_train = original %>%
     padr::pad(interval = "day") %>%
     dplyr::mutate(
-      target_var = ifelse(target_var == 0 & list_params$log_transformation, mean(target_var), target_var),
+      target_var = ifelse(target_var == 0 & list_params$log_transformation, dplyr::lag(target_var), target_var),
       ds = Date,
       y = eval(parse(text = log_transf))) %>%
     dplyr::filter(train == 1)
@@ -212,7 +225,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
   df_test = original %>%
     padr::pad(interval = "day") %>%
     dplyr::mutate(
-      target_var = ifelse(target_var == 0 & list_params$log_transformation, mean(target_var), target_var),
+      target_var = ifelse(target_var == 0 & list_params$log_transformation, dplyr::lag(target_var), target_var),
       ds = Date,
       y = eval(parse(text = log_transf))) %>%
     dplyr::filter(train == 0)
@@ -226,6 +239,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
       lapply(list_params$regressor, function(z){
 
         lapply(list_params$holidays.prior.scale, function(w){
+
 
       #####Models
 
@@ -266,18 +280,78 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
       forecast <- predict(model, future_prophet_complete)
 
 
-      #####outputs
+      ##### outputs
+
+      # If judgemental forecast points are parsed we define them here by parsing these to ypred and y in the calculation of accuracy metrics:
+      if(!is.null(judgmental_forecasts)){
+
+
+        adj_judmental_forecasts_log = c()
+        adj_judmental_forecasts_nolog = c()
+        adj_judmental_actual = c()
+
+        for(i in 1:length(judgmental_forecasts)){
+          adj_judmental_forecasts_log[i] = paste0("ypred_temp_log = ifelse(as.Date(ds) == as.Date('", names(judgmental_forecasts[i]), "'), ", judgmental_forecasts[i], ", ypred_temp_log)")
+          adj_judmental_forecasts_nolog[i] = paste0("ypred_temp_nolog = ifelse(as.Date(ds) == as.Date('", names(judgmental_forecasts[i]), "'), ", judgmental_forecasts[i], ", ypred_temp_nolog)")
+          adj_judmental_actual[i] = paste0("target_var_judg = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts[i]), "'), ", judgmental_forecasts[i], ", target_var_judg)")
+        }
+
+        forecast_temp_eval = paste0("forecast_tmp = forecast %>%
+          dplyr::mutate(ypred_temp_log = exp(yhat),
+                        ypred_temp_nolog = yhat,",
+                        paste0(adj_judmental_forecasts_log, collapse = ", "), ", ",
+                        paste0(adj_judmental_forecasts_nolog, collapse = ", "),
+          ") %>%
+          dplyr::select(ds,  ypred_temp_log, ypred_temp_nolog)")
+
+        eval(parse(text = forecast_temp_eval))
+
+        original_temp_eval = paste0("original_tmp = original %>%
+          dplyr::mutate(target_var_judg = target_var, ", paste0(adj_judmental_actual, collapse = ", "),
+               ")")
+
+        eval(parse(text = original_temp_eval))
+
+        y_pred_test_log = forecast_tmp %>% dplyr::filter(as.Date(ds) >= as.Date(min(df_test$ds))) %>% dplyr::select(ypred_temp_log) %>% unlist()
+        y_pred_test_nolog = forecast_tmp %>% dplyr::filter(as.Date(ds) >= as.Date(min(df_test$ds))) %>% dplyr::select(ypred_temp_nolog) %>% unlist()
+
+        y_true_test_log = original_tmp %>% dplyr::filter(as.Date(Date) >= as.Date(min(df_test$ds))) %>% dplyr::select(target_var_judg) %>% unlist()
+        y_true_test_nolog = original_tmp %>% dplyr::filter(as.Date(Date) >= as.Date(min(df_test$ds))) %>% dplyr::select(target_var_judg) %>% unlist()
+
+        y_pred_train_log = forecast_tmp %>% dplyr::filter(as.Date(ds) < as.Date(min(df_test$ds))) %>% dplyr::select(ypred_temp_log) %>% unlist()
+        y_pred_train_nolog = forecast_tmp %>% dplyr::filter(as.Date(ds) < as.Date(min(df_test$ds))) %>% dplyr::select(ypred_temp_nolog) %>% unlist()
+
+        y_true_train_log = original_tmp %>% dplyr::filter(as.Date(Date) < as.Date(min(df_test$ds))) %>% dplyr::select(target_var_judg) %>% unlist()
+        y_true_train_nolog = original_tmp %>% dplyr::filter(as.Date(Date) < as.Date(min(df_test$ds))) %>% dplyr::select(target_var_judg) %>% unlist()
+
+      }else{
+
+        y_pred_test_log = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))])
+        y_pred_train_log = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))])
+        y_true_test_log = exp(df_test$y)
+        y_true_train_log = exp(df_train$y)
+
+        y_pred_test_nolog = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]
+        y_pred_train_nolog = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]
+        y_true_test_nolog = df_test$y
+        y_true_train_nolog = df_train$y
+
+      }
+
+
+      ####
 
       if(list_params$log_transformation){
+
         test = data.frame( Error_Type = "Test Set",
                            regressor = z,
                            changepoint.prior.scale = x,
                            regressor.prior.scale = y,
                            holidays.prior.scale = w,
-                           MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                           MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                           MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
-                           RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]), y_true = exp(df_test$y)),
+                           MAPE = MLmetrics::MAPE(y_pred = y_pred_test_log, y_true = y_true_test_log),
+                           MSE = MLmetrics::MSE(y_pred = y_pred_test_log, y_true = y_true_test_log),
+                           MAE = MLmetrics::MAE(y_pred = y_pred_test_log, y_true = y_true_test_log),
+                           RMSE = MLmetrics::RMSE(y_pred = y_pred_test_log, y_true = y_true_test_log),
                            stringsAsFactors = FALSE)
 
         train = data.frame( Error_Type = "Train Set",
@@ -285,10 +359,10 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                             changepoint.prior.scale = x,
                             regressor.prior.scale = y,
                             holidays.prior.scale = w,
-                            MAPE = MLmetrics::MAPE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                            MSE = MLmetrics::MSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                            MAE = MLmetrics::MAE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
-                            RMSE = MLmetrics::RMSE(y_pred = exp(forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]), y_true = exp(df_train$y)),
+                            MAPE = MLmetrics::MAPE(y_pred = y_pred_train_log, y_true = y_true_train_log),
+                            MSE = MLmetrics::MSE(y_pred = y_pred_train_log, y_true = y_true_train_log),
+                            MAE = MLmetrics::MAE(y_pred = y_pred_train_log, y_true = y_true_train_log),
+                            RMSE = MLmetrics::RMSE(y_pred = y_pred_train_log, y_true = y_true_train_log),
                             stringsAsFactors = FALSE)
 
       }else{
@@ -298,10 +372,10 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                            changepoint.prior.scale = x,
                            regressor.prior.scale = y,
                            holidays.prior.scale = w,
-                           MAPE = MLmetrics::MAPE(y_pred = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))], y_true = df_test$y),
-                           MSE = MLmetrics::MSE(y_pred = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))], y_true = df_test$y),
-                           MAE = MLmetrics::MAE(y_pred = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))], y_true = df_test$y),
-                           RMSE = MLmetrics::RMSE(y_pred = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))], y_true = df_test$y),
+                           MAPE = MLmetrics::MAPE(y_pred = y_pred_test_nolog, y_true = y_true_test_nolog),
+                           MSE = MLmetrics::MSE(y_pred = y_pred_test_nolog, y_true = y_true_test_nolog),
+                           MAE = MLmetrics::MAE(y_pred = y_pred_test_nolog, y_true = y_true_test_nolog),
+                           RMSE = MLmetrics::RMSE(y_pred = y_pred_test_nolog, y_true = y_true_test_nolog),
                            stringsAsFactors = FALSE)
 
         train = data.frame( Error_Type = "Train Set",
@@ -309,10 +383,10 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                             changepoint.prior.scale = x,
                             regressor.prior.scale = y,
                             holidays.prior.scale = w,
-                            MAPE = MLmetrics::MAPE(y_pred = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))], y_true = df_train$y),
-                            MSE = MLmetrics::MSE(y_pred = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))], y_true = df_train$y),
-                            MAE = MLmetrics::MAE(y_pred = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))], y_true = df_train$y),
-                            RMSE = MLmetrics::RMSE(y_pred = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))], y_true = df_train$y),
+                            MAPE = MLmetrics::MAPE(y_pred = y_pred_train_nolog, y_true = y_true_train_nolog),
+                            MSE = MLmetrics::MSE(y_pred = y_pred_train_nolog, y_true = y_true_train_nolog),
+                            MAE = MLmetrics::MAE(y_pred = y_pred_train_nolog, y_true = y_true_train_nolog),
+                            RMSE = MLmetrics::RMSE(y_pred = y_pred_train_nolog, y_true = y_true_train_nolog),
                             stringsAsFactors = FALSE)
 
       }
@@ -339,9 +413,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                                                    yhat_log = yhat) %>%
                                                    dplyr::mutate(WeekDay = weekdays.Date(Date),",
                                                    map_holidays,
-                                                   "actuals = exp(c(df_train$y, df_test$y)),
+                                                   "actuals = c(y_true_train_log, y_true_test_log),
                                                    actuals_log = c(df_train$y, df_test$y),
-                                                   yhat = exp(yhat_log),
+                                                   yhat = c(y_pred_train_log, y_pred_test_log),
                                                    yhat_lower = exp(yhat_lower_log),
                                                    yhat_upper = exp(yhat_upper_log),
                                                    diff_abs = abs(actuals - yhat)/actuals,
@@ -361,7 +435,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                                                    dplyr::rename(Date = ds) %>%
                                                    dplyr::mutate(WeekDay = weekdays.Date(Date),",
                                                    map_holidays,
-                                                   "actuals = c(df_train$y, df_test$y),
+                                                   "actuals = c(y_true_train_nolog, y_true_test_nolog),
+                                                    yhat = c(y_pred_train_nolog, y_pred_test_nolog),
                                                    diff_abs = abs(actuals - yhat)/actuals,
                                                    diff = (actuals - yhat)/actuals,
                                                    regressor = z,

@@ -6,7 +6,7 @@
 \usage{
 Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "train",
   plotFrom = NULL, main_accuracy_metric = "MAPE",
-  train_set_imp_perc = 0.5)
+  train_set_imp_perc = 0.5, judgmental_forecasts = NULL)
 }
 \arguments{
 \item{df}{A data-frame with a numeric column, a date type column, a regressor and a column train (for train/test split). The 'train' column has to have 1 and 0 only where 1 refer to training set.}
@@ -33,6 +33,8 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "train",
 \item{main_accuracy_metric}{A character value either: 'MAPE', 'MSE', 'MAE' or 'RMSE' (it defaults to MAPE). This defines the criteria for selecting the best model (together with the 'best_model_in' parameter).}
 
 \item{train_set_imp_perc}{A numeric input between 0 and 1 representing the weight to give to the training set results relatively to the test set. Defaults to 0.5 (mean results). This parameter only affects the results when 'best_model_in' is set to 'mix_train_test'. When set to 1 the results are the same as setting 'best_model_in' to 'train'.}
+
+\item{judgmental_forecasts}{A names vector with the date as name and the value of the judmental forecast. For example if we know that allways on the xmas day the value we are trying to predict is zero we can parse judgmental_forecasts = c('2016-12-25' = 1,  '2017-12-25' = 1, '2018-12-25' = 1). If the judgemental forecast is zero don't parse the value zero and parse 1 instead. This will facilitate with log transformations.}
 }
 \value{
 This function returns a list with 3 elements:
