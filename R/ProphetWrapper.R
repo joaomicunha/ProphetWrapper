@@ -12,8 +12,8 @@
 #'  \itemize{
 #'  \item{\strong{target_variable}}  {The name of the target variable to predict. Has to be included in df.}
 #'  \item{\strong{changepoint.prior.scale}}  {A regularization parameter (vector or single value) for the automatic changepoint definitions of Prophet to define piecewise trend blocks. If the trend changes are being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the trend more flexible.}
-#'  \item{\strong{regressor.prior.scale}}  {A regularization parameter (vector or single value) for the external regressor. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the effect of regressor more flexible more flexible. This parameter is applied to both regressor1 and regressor2 (if parsed).}
-#'  \item{\strong{holidays.prior.scale}}   {A regularization parameter (vector or single value) for the holidays effects. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default this parameter is 10, which provides very little regularization. Reducing this parameter dampens holiday effects. Increasing it will make the trend more flexible.}
+#'  \item{\strong{regressor.prior.scale}}  {A regularization parameter (vector or single value) for the external regressor. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the effect of regressor more flexible. This parameter is applied to both regressor1 and regressor2 (if parsed).}
+#'  \item{\strong{holidays.prior.scale}}   {A regularization parameter (vector or single value) for the holidays effects. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default this parameter is 10, which provides very little regularization. Reducing this parameter dampens holiday effects. Increasing it will make the holidays effect more flexible.}
 #'  \item{\strong{weekly.seasonality}}  {Fit weekly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
 #'  \item{\strong{yearly.seasonality}}  {Fit yearly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
 #'  \item{\strong{regressor1}}  {The name of the first external regressor (or regressors) to include in the model. It has to exist on df as a column. If a vector is parsed, 1 regressor at a time is tested (as a model parameter essentially). If "no_regressor" is parsed, a univariate time-series model is estimated. "no_regressor" can be parsed as an element of the vector as well. }
@@ -26,8 +26,11 @@
 #' @param main_accuracy_metric A character value either: 'MAPE', 'MSE', 'MAE' or 'RMSE' (it defaults to MAPE). This defines the criteria for selecting the best model (together with the 'best_model_in' parameter).
 #' @param holidays A data-frame with columns holiday (character) and ds (date type)and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. lower_window=-2 will include 2 days prior to the date as holidays. Also optionally can have a column prior_scale specifying the prior scale for each holiday. It defaults to NULL in which case no holidays are used.
 #' @param judgmental_forecasts A names vector with the date as name and the value of the judmental forecast. For example if we know that allways on the xmas day the value we are trying to predict is zero we can parse judgmental_forecasts = c('2016-12-25' = 1,  '2017-12-25' = 1, '2018-12-25' = 1). If the judgemental forecast is zero don't parse the value zero and parse 1 instead. This will facilitate with log transformations.
+#' @param k_impute Integer width of the moving average window. Expands to both sides of the center element e.g. k=2 means 4 observations (2 left, 2 right) are taken into account. If all observations in the current window are NA, the window size is automatically increased until there are at least 2 non-NA values present (from ImputeTS package). Defaults to 4.
+#' @param method_impute Weighting method to be used for imputing missing values or padded time-series. Accepts the following input: "simple" - Simple Moving Average (SMA), "linear" - Linear Weighted Moving Average (LWMA) or "exponential" - Exponential Weighted Moving Average (EWMA). Defaults to 'exponential'.
 #' @param plotFrom A character value ('yyyy-mm-dd') representing a date to filter the data from to plot the best model based on the 'best_model_in' parameter (actuals vs forecast).
 #' @param seed A seed.
+#' @param debug TRUE for browsing the function. Defaults to FALSE.
 #'
 #'
 #' @return This function returns a list with 3 elements:
@@ -73,7 +76,12 @@
 
 
 
-Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "train", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5, judgmental_forecasts = NULL, seed = 12345){
+Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "train", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 4, method_impute = "exponential", seed = 12345, debug = FALSE){
+
+  #~~~ DEBUG =================================================================
+
+  if(debug){browser()}
+
 
   is.date <- function(x) inherits(x, 'Date')
 
@@ -237,21 +245,23 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
     log_transf = paste0("target_var")
   }
 
-  df_train = original %>%
+  #training set:
+  df_all = original %>%
     padr::pad() %>%
+    tidyr::fill(train) %>%
     dplyr::mutate(
-      target_var = ifelse(target_var == 0 & list_params$log_transformation, dplyr::lag(target_var), target_var),
-      ds = Date,
-      y = eval(parse(text = log_transf))) %>%
-    dplyr::filter(train == 1)
+      target_var = ifelse(target_var == 0 & list_params$log_transformation, NA, target_var),
+      ds = Date) %>%
+    dplyr::mutate_all(dplyr::funs(imputeTS::na.ma(x = ., k = k_impute, weighting = method_impute))) %>%
+    dplyr::mutate(y = eval(parse(text = log_transf)))
 
-  df_test = original %>%
-    padr::pad() %>%
-    dplyr::mutate(
-      target_var = ifelse(target_var == 0 & list_params$log_transformation, dplyr::lag(target_var), target_var),
-      ds = Date,
-      y = eval(parse(text = log_transf))) %>%
+  #test set:
+  df_test = df_all %>%
     dplyr::filter(train == 0)
+
+  #test set:
+  df_train = df_all %>%
+    dplyr::filter(train == 1)
 
   #~~~ Create a list of with predictions and accuracy data.frames for each combination of  changepoint.prior.scale and prior.scale. =================================================================
 
@@ -264,6 +274,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
         lapply(list_params$holidays.prior.scale, function(w){
 
           lapply(list_params$regressor2, function(r){
+
+      if(debug){browser()}
 
       #####Models
 
@@ -554,19 +566,22 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
     dplyr::bind_rows() %>%
     dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale, regressor.prior.scale == accuracies$regressor.prior.scale, regressor1 == accuracies$regressor1, regressor2 == accuracies$regressor2, holidays.prior.scale == accuracies$holidays.prior.scale)
 
-  df = invisible(final[(unique_combinations + 1):(unique_combinations*2)] %>%
+  df_best_model = invisible(final[(unique_combinations + 1):(unique_combinations*2)] %>%
                    dplyr::bind_rows() %>%
                    dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale, regressor.prior.scale == accuracies$regressor.prior.scale, regressor1 == accuracies$regressor1, regressor2 == accuracies$regressor2, holidays.prior.scale == accuracies$holidays.prior.scale) %>%
-                   dplyr::select(Date, actuals, yhat, yhat_lower, yhat_upper) %>%
-                   tidyr::gather(`Actuals vs Forecast`, Volumes, actuals:yhat) %>%
-                   dplyr::filter(as.Date(Date) >= as.Date(plotFrom)))
+                   dplyr::mutate(prediction_and_predictor = ifelse(train == 1, actuals, yhat)) %>%
+                   dplyr::select(Date, actuals, yhat, yhat_lower, yhat_upper, prediction_and_predictor, train))
 
-  graph1 = ggplot2::ggplot(df, ggplot2::aes(x = as.Date(Date), y = Volumes, color = `Actuals vs Forecast`, linetype = `Actuals vs Forecast`)) +
+  df_graph = df_best_model %>%
+    dplyr::filter(as.Date(Date) >= as.Date(plotFrom)) %>%
+    tidyr::gather(`Actuals vs Forecast`, Volumes, actuals:yhat)
+
+  graph1 = ggplot2::ggplot(data = df_graph, ggplot2::aes(x = as.Date(Date), y = Volumes, color = `Actuals vs Forecast`, linetype = `Actuals vs Forecast`)) +
     ggplot2::geom_line() +
     ggplot2::geom_vline(ggplot2::aes(xintercept = as.numeric(max(df_train$ds))), linetype = 4, colour = "#40dfad", alpha = 0.7) +
     ggthemes::theme_tufte() +
     ggplot2::scale_y_continuous(labels = scales::comma_format()) +
-    ggplot2::scale_x_date(breaks = scales::date_breaks("2 months")) +
+    ggplot2::scale_x_date(name = "Date", breaks = scales::date_breaks("2 months")) +
     ggthemes::scale_color_stata()
 
   graph2 = invisible(gridExtra::tableGrob(accuracies_graph, rows = NULL))
@@ -574,9 +589,13 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
   graph_final = invisible(gridExtra::arrangeGrob(graph2, graph1, nrow = 2, heights = c(0.3, 2)))
 
 
+  cat(paste0("\n\nThe ", unique_combinations, " models were trained and the accuracy (", main_accuracy_metric,") was estimated for the test set between ", min(df_test$ds), " to ", max(df_test$ds), "/n",
+             "To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access 'Actuals_vs_Predictions (All or Best)'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'."))
+
 
   list(Accuracy_Overview = invisible(final[1:unique_combinations] %>% dplyr::bind_rows() %>% dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale, 1, 0))),
-       Actuals_vs_Predictions = invisible(final[(unique_combinations + 1):(unique_combinations*2)] %>% dplyr::bind_rows()),
+       Actuals_vs_Predictions_All = invisible(final[(unique_combinations + 1):(unique_combinations*2)] %>% dplyr::bind_rows()),
+       Actual_vs_Predictions_Best = df_best_model,
        Plot_Actual_Predictions = graph1)
 
 

@@ -17,7 +17,8 @@ Imports:
     scales,
     tidyr, 
     Rcpp, 
-    rlang
+    rlang, 
+    imputeTS
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
