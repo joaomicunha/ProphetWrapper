@@ -4,5 +4,5 @@ export(Prophet_Wrapper)
 
 import(magrittr)
 import(prophet)
-import(Rccp)
+import(Rcpp)
 
