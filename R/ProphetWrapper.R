@@ -596,6 +596,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
   list(Accuracy_Overview = invisible(final[1:unique_combinations] %>% dplyr::bind_rows() %>% dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale, 1, 0))),
        Actuals_vs_Predictions_All = invisible(final[(unique_combinations + 1):(unique_combinations*2)] %>% dplyr::bind_rows()),
        Actual_vs_Predictions_Best = df_best_model,
+       Best_Parameters = accuracies,
        Plot_Actual_Predictions = graph1)
 
 
