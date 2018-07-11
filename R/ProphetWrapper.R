@@ -317,7 +317,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
       model = prophet::fit.prophet(model, df = df_train)
 
-      future_prophet_complete = prophet::make_future_dataframe(model, periods = nrow(df_test)) %>%
+      future_prophet_complete = prophet::make_future_dataframe(model, periods = nrow(df_test), freq = padr::get_interval(df_all$ds)) %>%
         dplyr::mutate(ds = as.Date(ds)) %>%
         dplyr::left_join(original, by = c("ds" = "Date"))
 
