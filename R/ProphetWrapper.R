@@ -449,11 +449,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
       if(!is.null(holidays)){
         map_holidays = "Holiday = (as.Date(Date) %in% as.Date(holiday_dates)), "
-        select_holidays_no_log = " dplyr::select(Date, regressor1, regressor2, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, Holiday)"
+        select_holidays_no_log = " dplyr::select(Date, regressor1, regressor2, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, Holiday, train)"
         select_holidays_log = " dplyr::select(Date, regressor1, regressor2, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, actuals_log, yhat, yhat_log, yhat_lower_log, yhat_upper_log, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, Holiday, train) "
       }else{
         map_holidays = ""
-        select_holidays_no_log = " dplyr::select(Date, regressor1, regressor2, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay)"
+        select_holidays_no_log = " dplyr::select(Date, regressor1, regressor2, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, yhat, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, train)"
         select_holidays_log = " dplyr::select(Date, regressor1, regressor2, changepoint.prior.scale, regressor.prior.scale, holidays.prior.scale, actuals, actuals_log, yhat, yhat_log, yhat_lower_log, yhat_upper_log, yhat_lower, yhat_upper, diff_abs, diff, WeekDay, train) "
       }
 
