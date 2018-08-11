@@ -4,10 +4,11 @@
 \alias{Prophet_Wrapper}
 \title{Prophet Wrapper}
 \usage{
-Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "train",
+Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
   plotFrom = NULL, main_accuracy_metric = "MAPE",
   train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 4,
-  method_impute = "exponential", seed = 12345, debug = FALSE)
+  method_impute = "exponential", parallel = FALSE, seed = 12345,
+  debug = FALSE)
 }
 \arguments{
 \item{df}{A data-frame with a numeric column, a date type column, a regressor and a column train (for train/test split). The 'train' column has to have 1 and 0 only where 1 refer to training set.}
@@ -28,7 +29,7 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "train",
 
 \item{holidays}{A data-frame with columns holiday (character) and ds (date type)and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. lower_window=-2 will include 2 days prior to the date as holidays. Also optionally can have a column prior_scale specifying the prior scale for each holiday. It defaults to NULL in which case no holidays are used.}
 
-\item{best_model_in}{A character value either: 'train', 'test' or 'mix_train_test'. Defaults to 'train'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements.}
+\item{best_model_in}{A character value either: 'train', 'test', 'mix_train_test' or 'cv'. Defaults to 'test'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements and wants to understand the general performance of the model cross-validated of a set of periods ('cv').}
 
 \item{plotFrom}{A character value ('yyyy-mm-dd') representing a date to filter the data from to plot the best model based on the 'best_model_in' parameter (actuals vs forecast).}
 
@@ -41,6 +42,8 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "train",
 \item{k_impute}{Integer width of the moving average window. Expands to both sides of the center element e.g. k=2 means 4 observations (2 left, 2 right) are taken into account. If all observations in the current window are NA, the window size is automatically increased until there are at least 2 non-NA values present (from ImputeTS package). Defaults to 4.}
 
 \item{method_impute}{Weighting method to be used for imputing missing values or padded time-series. Accepts the following input: "simple" - Simple Moving Average (SMA), "linear" - Linear Weighted Moving Average (LWMA) or "exponential" - Exponential Weighted Moving Average (EWMA). Defaults to 'exponential'.}
+
+\item{parallel}{A Bool specify wheter to use parallelization whilst training the different models or not (defaults to FALSE). If TRUE, the number of cores is set to the total number of available cores minus 1 (parallel::detectCores()-1).}
 
 \item{seed}{A seed.}
 

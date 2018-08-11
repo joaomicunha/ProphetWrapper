@@ -21,7 +21,7 @@
 #'  \item{\strong{standardize_regressor}}  {Bool, specify whether this regressor will be standardized prior to fitting. Can be 'auto' (standardize if not binary), True, or False.}
 #'  \item{\strong{log_transformation}}  {Bool, specify whether the Target Variable will be log transformed pre-fitting the models or not.}
 #' }
-#' @param best_model_in A character value either: 'train', 'test' or 'mix_train_test'. Defaults to 'train'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements.
+#' @param best_model_in A character value either: 'train', 'test', 'mix_train_test' or 'cv'. Defaults to 'test'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements and wants to understand the general performance of the model cross-validated of a set of periods ('cv').
 #' @param train_set_imp_perc A numeric input between 0 and 1 representing the weight to give to the training set results relatively to the test set. Defaults to 0.5 (mean results). This parameter only affects the results when 'best_model_in' is set to 'mix_train_test'. When set to 1 the results are the same as setting 'best_model_in' to 'train'.
 #' @param main_accuracy_metric A character value either: 'MAPE', 'MSE', 'MAE' or 'RMSE' (it defaults to MAPE). This defines the criteria for selecting the best model (together with the 'best_model_in' parameter).
 #' @param holidays A data-frame with columns holiday (character) and ds (date type)and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. lower_window=-2 will include 2 days prior to the date as holidays. Also optionally can have a column prior_scale specifying the prior scale for each holiday. It defaults to NULL in which case no holidays are used.
@@ -76,8 +76,15 @@
 
 
 
+Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "test", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 4, method_impute = "exponential", parallel = FALSE, seed = 12345, debug = FALSE){
 
-Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "train", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 4, method_impute = "exponential", parallel = FALSE, seed = 12345, debug = FALSE){
+  #TO DO:
+  # Finish cv_wrapper function:
+        # a) understand better the logic of the cross_validation function from Prophet
+        # b) Finish judgmental forecast section
+  #Simplify the function - cutting duplication by standardizing the output between log and non-log
+  #Improve GGPLOT
+
 
   #~~~ DEBUG =================================================================
 
@@ -130,8 +137,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
     }
   }
 
-  if(best_model_in != "train" & best_model_in != "test" & best_model_in != "mix_train_test" ){
-    stop("The 'best_model_in' argument has to be either 'train', 'test' or 'mix_train_test'.")
+  if(best_model_in != "train" & best_model_in != "test" & best_model_in != "mix_train_test" & best_model_in != "cv"){
+    stop("The 'best_model_in' argument has to be either 'train', 'test', 'mix_train_test' or 'cv'.")
   }
 
   if(train_set_imp_perc > 1  & train_set_imp_perc <0 ){
@@ -234,7 +241,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
   #~~~ Printing Informative Messeges =================================================================
 
-  cat(paste0("We are testing Prophet models for ", length(list_params$changepoint.prior.scale), " values of changepoint.prior.scale and ", length(list_params$regressor.prior.scale), " of regressor.prior.scale, ", length(list_params$regressor1),   " regressors1 and ", length(list_params$regressor2), "regressors2,", length(list_params$holidays.prior.scale), " values of holidays.prior.scale. This is a total of ", length(list_params$regressor.prior.scale) * length(list_params$changepoint.prior.scale) * length(list_params$regressor1) * length(list_params$regressor2) * length(list_params$holidays.prior.scale), " models.\n\n"))
+  cat(paste0("We are testing Prophet models for ", length(list_params$changepoint.prior.scale), " values of changepoint.prior.scale and ", length(list_params$regressor.prior.scale), " of regressor.prior.scale, ", length(list_params$regressor1),   " regressors1 and ", length(list_params$regressor2), " regressors2,", length(list_params$holidays.prior.scale), " values of holidays.prior.scale. This is a total of ", length(list_params$regressor.prior.scale) * length(list_params$changepoint.prior.scale) * length(list_params$regressor1) * length(list_params$regressor2) * length(list_params$holidays.prior.scale), " models.\n\n"))
   #cat(paste0("If there are no surprises, it should take maximum of ", round(((length(list_params$regressor.prior.scale) * length(list_params$changepoint.prior.scale) * length(list_params$regressor1) * length(list_params$regressor2) * length(list_params$holidays.prior.scale)) * 10)/60, 2), " minutes to run ...\n\n"))
 
 
@@ -302,7 +309,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                                fit = FALSE)
     }
 
-
+    #adding regressors:
     if(regressor1.param != "no_regressor"){
 
       model = prophet::add_regressor(model, regressor1.param, standardize = list_params$standardize_regressor, prior.scale = regressor.prior.scale.param)
@@ -315,7 +322,14 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
     }
 
+    #fit the model:
     model = prophet::fit.prophet(model, df = df_train)
+
+    if(best_model_in == "cv"){
+
+      cv_list = cv_wrapper(df = df_all, period_param = 270, horizon_param = 90, debug = debug, model_param = model, list.params = list_params, judgmental.forecasts = judgmental_forecasts, regressor1_cv = regressor1.param, regressor2_cv = regressor2.param, changepoint.prior.scale_cv = changepoint.prior.scale.param, regressor.prior.scale_cv = regressor.prior.scale.param, holidays.prior.scale_cv = holidays.prior.scale.param)
+
+    }
 
     future_prophet_complete = prophet::make_future_dataframe(model, periods = nrow(df_test), freq = padr::get_interval(df_all$ds)) %>%
       dplyr::mutate(ds = as.Date(ds)) %>%
@@ -506,7 +520,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
 
     final_list = list(accuracy_overview = df_accuracy,
-                      actuals_vs_forecast = actuals_vs_forecast)
+                      actuals_vs_forecast = actuals_vs_forecast,
+                      accuracy_cv = if(best_model_in == 'cv'){cv_list}else{list()})
     return(final_list)
 
   }
@@ -522,6 +537,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                    regressor2.param = grid$regressor2)
 
   }else{
+
+    cat("Running the models in parallel (no progress bar) ... \n")
 
     final = parallel::mcmapply(create_predictions_and_outputs_fun,
                                SIMPLIFY = F,
@@ -542,7 +559,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
   final_accuracy = final[names(final) == "accuracy_overview"]
   final_predictions_actuals = final[names(final) == "actuals_vs_forecast"]
-
+  final_accuracy_cv = final[names(final) == "accuracy_cv"]
 
   if(is.null(plotFrom)){
     plotFrom = min(df_train$ds)
@@ -552,7 +569,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
 
   #identify the best model based on best_model_in parameter:
 
-  if(best_model_in != "mix_train_test"){
+  if(best_model_in == "train" | best_model_in == "test"){
     accuracies = invisible(final_accuracy %>%
                              dplyr::bind_rows() %>%
                              dplyr::filter(grepl(pattern = best_model_in, x = Error_Type, ignore.case = TRUE)) %>%
@@ -563,6 +580,21 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
                                            regressor2,
                                            holidays.prior.scale) %>%
                              head(1))
+
+  }else if(best_model_in == "cv"){
+
+    main_accuracy_metric = paste0(main_accuracy_metric, "_cv")
+
+    accuracies = invisible(final_accuracy_cv %>%
+                             dplyr::bind_rows() %>%
+                             dplyr::arrange(!!rlang::sym(main_accuracy_metric)) %>%
+                             dplyr::select(changepoint.prior.scale,
+                                           regressor.prior.scale,
+                                           regressor1,
+                                           regressor2,
+                                           holidays.prior.scale) %>%
+                             head(1))
+
 
   }else{
 
@@ -597,9 +629,12 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "tr
     ggplot2::geom_line() +
     ggplot2::geom_vline(ggplot2::aes(xintercept = as.numeric(max(df_train$ds))), linetype = 4, colour = "#40dfad", alpha = 0.7) +
     ggthemes::theme_tufte() +
-    ggplot2::scale_y_continuous(labels = scales::comma_format()) +
-    ggplot2::scale_x_date(name = "Date", breaks = scales::date_breaks("2 months")) +
-    ggthemes::scale_color_stata()
+    ggplot2::scale_y_continuous("\nActuals/Forecasts\n", labels = scales::comma_format()) +
+    ggplot2::scale_x_date(name = "\nDate", breaks = scales::date_breaks("2 months")) +
+    ggthemes::scale_color_tableau(palette = 'tableau10medium') +
+    ggtitle(label = "Actuals vs Forecasts", subtitle = paste0("From: ", min(df_graph$Date), " To: ", min(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
+    theme(legend.position = "bottom")
+
 
   graph2 = invisible(gridExtra::tableGrob(accuracies_graph, rows = NULL))
 
