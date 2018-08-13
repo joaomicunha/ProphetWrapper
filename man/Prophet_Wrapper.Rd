@@ -8,7 +8,7 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
   plotFrom = NULL, main_accuracy_metric = "MAPE",
   train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 4,
   method_impute = "exponential", parallel = FALSE, seed = 12345,
-  debug = FALSE)
+  period_cv = NULL, initial_cv = NULL, horizon_cv = NULL, debug = FALSE)
 }
 \arguments{
 \item{df}{A data-frame with a numeric column, a date type column, a regressor and a column train (for train/test split). The 'train' column has to have 1 and 0 only where 1 refer to training set.}
@@ -47,12 +47,18 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
 
 \item{seed}{A seed.}
 
+\item{period_cv}{Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used (for more details see documentation of prophet::cross_validation)}
+
+\item{initial_cv}{Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation)}
+
+\item{horizon_cv}{Integer size of the horizon (for more details see documentation of prophet::cross_validation)}
+
 \item{debug}{TRUE for browsing the function. Defaults to FALSE.}
 }
 \value{
 This function returns a list with 3 elements:
  \itemize{
- \item{\strong{Accuracy_Overview}}  {A data-frame with all the trained models and accuracy metrics divided by train and test set. The metrics are: MAPE', 'MSE', 'MAE' or 'RMSE'.}
+ \item{\strong{Accuracy_Overview}}  {A data-frame with all the trained models and accuracy metrics divided by train and test set. The metrics are: MAPE', 'MSE', 'MAE', 'RMSE', 'MPE'}
  \item{\strong{Actuals_vs_Predictions}}  {A data-frame with the actuals vs predictions and with upper and lower bound confidence intervals. This output also contains a column 'diff' with the Absolute Percentage Error for each prediction allowing the user to easily identify areas of miss-prediction. If log_transformation is applied the output will also include log predictions and log actuals.}
  \item{\strong{Plot_Actual_Predictions}}  {A ggplot with actuals vs predictions and a separator for train/test split for the best model (based on 'best_model_in' and 'main_accuracy_metric' parameters).}
 }

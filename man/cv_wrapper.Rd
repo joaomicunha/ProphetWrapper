@@ -4,16 +4,37 @@
 \alias{cv_wrapper}
 \title{cv_wrapper}
 \usage{
-cv_wrapper(df, period_param, horizon_param, model_param)
+cv_wrapper(df, period.param, horizon.param, model.param, initial.param,
+  list.params, judgmental.forecasts, regressor1_cv, regressor2_cv,
+  changepoint.prior.scale_cv, regressor.prior.scale_cv, holidays.prior.scale_cv,
+  debug)
 }
 \arguments{
 \item{df}{The full data set}
 
-\item{period_param}{Size of the total length of periods tested/validated.}
+\item{period.param}{Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used.}
 
-\item{horizon_param}{The length of each of the cross-validation folds.}
+\item{horizon.param}{Integer size of the horizon.}
 
-\item{model_param}{The model}
+\item{model.param}{The model}
+
+\item{initial.param}{Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon.}
+
+\item{list.params}{A list with parameters passed by the user}
+
+\item{judgmental.forecasts}{judgmental forecast named vector}
+
+\item{regressor1_cv}{parameters from list.params}
+
+\item{regressor2_cv}{parameters from list.params}
+
+\item{changepoint.prior.scale_cv}{parameters from list.params}
+
+\item{regressor.prior.scale_cv}{parameters from list.params}
+
+\item{holidays.prior.scale_cv}{parameters from list.params}
+
+\item{debug}{For debug}
 }
 \description{
 Function used to simplify the cross validation workflow in ProphetWrapper

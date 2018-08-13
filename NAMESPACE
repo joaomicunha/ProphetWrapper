@@ -5,4 +5,6 @@ export(Prophet_Wrapper)
 import(magrittr)
 import(prophet)
 import(Rcpp)
+importFrom("stats", "predict")
+importFrom("utils", "head")
 
