@@ -47,19 +47,21 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
 
 \item{seed}{A seed.}
 
-\item{period_cv}{Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used (for more details see documentation of prophet::cross_validation)}
+\item{period_cv}{Used if best_model_in == 'cv'. Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used (for more details see documentation of prophet::cross_validation)}
 
-\item{initial_cv}{Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation)}
+\item{initial_cv}{Used if best_model_in == 'cv'. Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation)}
 
-\item{horizon_cv}{Integer size of the horizon (for more details see documentation of prophet::cross_validation)}
+\item{horizon_cv}{Used if best_model_in == 'cv'. Integer size of the horizon (for more details see documentation of prophet::cross_validation)}
 
 \item{debug}{TRUE for browsing the function. Defaults to FALSE.}
 }
 \value{
 This function returns a list with 3 elements:
  \itemize{
- \item{\strong{Accuracy_Overview}}  {A data-frame with all the trained models and accuracy metrics divided by train and test set. The metrics are: MAPE', 'MSE', 'MAE', 'RMSE', 'MPE'}
- \item{\strong{Actuals_vs_Predictions}}  {A data-frame with the actuals vs predictions and with upper and lower bound confidence intervals. This output also contains a column 'diff' with the Absolute Percentage Error for each prediction allowing the user to easily identify areas of miss-prediction. If log_transformation is applied the output will also include log predictions and log actuals.}
+ \item{\strong{Accuracy_Overview}}  {A data-frame with all the trained models and accuracy metrics divided by train, test and cross-validated results (if available) The metrics are: MAPE', 'MSE', 'MAE', 'RMSE', 'MPE'}
+ \item{\strong{Actuals_vs_Predictions_All}} {A data-frame with the actuals vs predictions and with upper and lower bound confidence intervals. This output also contains a column 'diff' with the Absolute Percentage Error for each prediction allowing the user to easily identify areas of miss-prediction.}
+ \item{\strong{Actuals_vs_Predictions_Best}} {A data-frame with the predictions of the best model (based on 'main_accuracy_metric' and 'best_model_in' parameters). Actuals, predictions, upper and lower bound predictions are included as well as a 'prediction_and_predictor' field wich contains actuals from the train set and predictions from the test set (useful when stacked models are used).}
+ \item{\strong{Best_Parameters}} {A data-frame with the best parameters selected by performance.}
  \item{\strong{Plot_Actual_Predictions}}  {A ggplot with actuals vs predictions and a separator for train/test split for the best model (based on 'best_model_in' and 'main_accuracy_metric' parameters).}
 }
 }

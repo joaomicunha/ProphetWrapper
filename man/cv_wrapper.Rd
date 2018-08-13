@@ -7,7 +7,7 @@
 cv_wrapper(df, period.param, horizon.param, model.param, initial.param,
   list.params, judgmental.forecasts, regressor1_cv, regressor2_cv,
   changepoint.prior.scale_cv, regressor.prior.scale_cv, holidays.prior.scale_cv,
-  debug)
+  df.test, debug)
 }
 \arguments{
 \item{df}{The full data set}
@@ -33,6 +33,8 @@ cv_wrapper(df, period.param, horizon.param, model.param, initial.param,
 \item{regressor.prior.scale_cv}{parameters from list.params}
 
 \item{holidays.prior.scale_cv}{parameters from list.params}
+
+\item{df.test}{test set}
 
 \item{debug}{For debug}
 }

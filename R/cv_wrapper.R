@@ -16,7 +16,7 @@
 #' @param changepoint.prior.scale_cv parameters from list.params
 #' @param regressor.prior.scale_cv parameters from list.params
 #' @param holidays.prior.scale_cv parameters from list.params
-#'
+#' @param df.test test set
 #'
 #' @import magrittr
 #'

@@ -31,16 +31,18 @@
 #' @param plotFrom A character value ('yyyy-mm-dd') representing a date to filter the data from to plot the best model based on the 'best_model_in' parameter (actuals vs forecast).
 #' @param seed A seed.
 #' @param parallel A Bool specify wheter to use parallelization whilst training the different models or not (defaults to FALSE). If TRUE, the number of cores is set to the total number of available cores minus 1 (parallel::detectCores()-1).
-#' @param period_cv Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used (for more details see documentation of prophet::cross_validation)
-#' @param initial_cv Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation)
-#' @param horizon_cv Integer size of the horizon (for more details see documentation of prophet::cross_validation)
+#' @param period_cv Used if best_model_in == 'cv'. Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used (for more details see documentation of prophet::cross_validation)
+#' @param initial_cv Used if best_model_in == 'cv'. Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation)
+#' @param horizon_cv Used if best_model_in == 'cv'. Integer size of the horizon (for more details see documentation of prophet::cross_validation)
 #' @param debug TRUE for browsing the function. Defaults to FALSE.
 #'
 #'
 #' @return This function returns a list with 3 elements:
 #'  \itemize{
-#'  \item{\strong{Accuracy_Overview}}  {A data-frame with all the trained models and accuracy metrics divided by train and test set. The metrics are: MAPE', 'MSE', 'MAE', 'RMSE', 'MPE'}
-#'  \item{\strong{Actuals_vs_Predictions}}  {A data-frame with the actuals vs predictions and with upper and lower bound confidence intervals. This output also contains a column 'diff' with the Absolute Percentage Error for each prediction allowing the user to easily identify areas of miss-prediction. If log_transformation is applied the output will also include log predictions and log actuals.}
+#'  \item{\strong{Accuracy_Overview}}  {A data-frame with all the trained models and accuracy metrics divided by train, test and cross-validated results (if available) The metrics are: MAPE', 'MSE', 'MAE', 'RMSE', 'MPE'}
+#'  \item{\strong{Actuals_vs_Predictions_All}} {A data-frame with the actuals vs predictions and with upper and lower bound confidence intervals. This output also contains a column 'diff' with the Absolute Percentage Error for each prediction allowing the user to easily identify areas of miss-prediction.}
+#'  \item{\strong{Actuals_vs_Predictions_Best}} {A data-frame with the predictions of the best model (based on 'main_accuracy_metric' and 'best_model_in' parameters). Actuals, predictions, upper and lower bound predictions are included as well as a 'prediction_and_predictor' field wich contains actuals from the train set and predictions from the test set (useful when stacked models are used).}
+#'  \item{\strong{Best_Parameters}} {A data-frame with the best parameters selected by performance.}
 #'  \item{\strong{Plot_Actual_Predictions}}  {A ggplot with actuals vs predictions and a separator for train/test split for the best model (based on 'best_model_in' and 'main_accuracy_metric' parameters).}
 #' }
 #'
@@ -84,9 +86,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   #TO DO:
   # Finish cv_wrapper function:
         # a) understand better the logic of the cross_validation function from Prophet
-        # b) Finish judgmental forecast section
-  #Simplify the function - cutting duplication by standardizing the output between log and non-log
-  #Improve GGPLOT
   #Finish documentation properly
   #Split into several functions
 
@@ -588,7 +587,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
 
   graph2 = invisible(gridExtra::tableGrob(accuracies_graph, rows = NULL))
-
   graph_final = invisible(gridExtra::arrangeGrob(graph2, graph1, nrow = 2, heights = c(0.3, 2)))
 
 
