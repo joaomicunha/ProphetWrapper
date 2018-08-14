@@ -4,7 +4,7 @@ Title: ProphetWrapper - A Prophet forecast wrapper
 Version: 0.1.0
 Author: Joao Cunha
 Maintainer: Joao Cunha <joaocunha11@hotmail.com>
-Description: ProphetWrapper package is a package wrapper for Prophet allowing easier use and extra functionality such as parameter tunning
+Description: ProphetWrapper package is a forecasting package wrapping Prophet allowing easier use and extra functionality such as parameter tunning
 Imports:
     magrittr, 
     prophet, 

@@ -8,14 +8,6 @@ For more background on Prophet please consider the resources below. The document
 - [Forecasting at Scale (Prophet White Paper)](https://peerj.com/preprints/3190/ "Forecasting at Scale (Prophet White Paper)")
 
 
-## Installing
-
-```{r eval=FALSE}
-devtools::install_github("forward3d/ProphetWrapper")
-
-library(ProphetWrapper)
-```
-
 ## How to use it
 
 Below you can find a simple example of how to explore the functionality of ProphetWrapper. The package contains only one exported function ProphetWrapper::Prophet_Wrapper().
