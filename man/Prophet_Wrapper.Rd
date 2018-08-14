@@ -29,11 +29,11 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
 
 \item{holidays}{A data-frame with columns holiday (character) and ds (date type)and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. lower_window=-2 will include 2 days prior to the date as holidays. Also optionally can have a column prior_scale specifying the prior scale for each holiday. It defaults to NULL in which case no holidays are used.}
 
-\item{best_model_in}{A character value either: 'train', 'test', 'mix_train_test' or 'cv'. Defaults to 'test'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements and wants to understand the general performance of the model cross-validated of a set of periods ('cv').}
+\item{best_model_in}{A character value either: 'train', 'test', 'mix_train_test' or 'cv'. Defaults to 'test'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements and wants to understand the general performance of the model cross-validated over a set of periods ('cv').}
 
 \item{plotFrom}{A character value ('yyyy-mm-dd') representing a date to filter the data from to plot the best model based on the 'best_model_in' parameter (actuals vs forecast).}
 
-\item{main_accuracy_metric}{A character value either: 'MAPE', 'MSE', 'MAE' or 'RMSE' (it defaults to MAPE). This defines the criteria for selecting the best model (together with the 'best_model_in' parameter).}
+\item{main_accuracy_metric}{A character value either: 'MAPE', 'MSE', 'MAE', 'RMSE' or MPE (it defaults to MAPE). This defines the criteria for selecting the best model (together with the 'best_model_in' parameter).}
 
 \item{train_set_imp_perc}{A numeric input between 0 and 1 representing the weight to give to the training set results relatively to the test set. Defaults to 0.5 (mean results). This parameter only affects the results when 'best_model_in' is set to 'mix_train_test'. When set to 1 the results are the same as setting 'best_model_in' to 'train'.}
 
@@ -47,11 +47,11 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
 
 \item{seed}{A seed.}
 
-\item{period_cv}{Used if best_model_in == 'cv'. Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used (for more details see documentation of prophet::cross_validation)}
+\item{period_cv}{Used if best_model_in == 'cv'. Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used (for more details see documentation of prophet::cross_validation function and/or check Details section below).}
 
-\item{initial_cv}{Used if best_model_in == 'cv'. Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation)}
+\item{initial_cv}{Used if best_model_in == 'cv'. Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation function and/or check Details section below).}
 
-\item{horizon_cv}{Used if best_model_in == 'cv'. Integer size of the horizon (for more details see documentation of prophet::cross_validation)}
+\item{horizon_cv}{Used if best_model_in == 'cv'. Integer size of the horizon (for more details see documentation of prophet::cross_validation function and/or check Details section below).}
 
 \item{debug}{TRUE for browsing the function. Defaults to FALSE.}
 }
@@ -71,6 +71,10 @@ The main rationale behind the package was to build a reproducible function to te
 }
 \details{
 Since this is a wrapper for Prophet, you can find extra parameters information on Prophet documentation \code{?prophet}.
+
+When the parameter 'best_model_in' is set to 'cv' cross-validation (cv) will be performed. More precisely, due to the chronological nature of the data (time-series) the cv method used is 'evaluation on a rolling forecasting origin'. ProphetWrapper uses the prophet::cross_validation() function to compute this error metrics.
+Three arguments can be selected for this section (horizon_cv, period_cv and initial_cv). horizon_cv controls for the length of each of the forecasts in the cross-validation process (defaults to the size of the testing set parsed to prophet_wrapper). The initial_cv controls for the length of the minimum data used for training on each fold (defaults to 3 * horizon_cv). period_cv controls for the time between cut-offs controlling if they overlap or not.
+As an example assuming daily data, if we have 1673 observations finishing on the 2018-07-31 and we select horizon_cv equal to 91, period equal to 89 and initial as 1673 - 270, we end up with 3 folds of 90 days each sequentially.
 }
 \examples{
 \dontrun{
