@@ -7,7 +7,7 @@
 cv_wrapper(df, period.param, horizon.param, model.param, initial.param,
   list.params, judgmental.forecasts, regressor1_cv, regressor2_cv,
   changepoint.prior.scale_cv, regressor.prior.scale_cv, holidays.prior.scale_cv,
-  df.test, debug)
+  df.test, main.accuracy.metric, debug)
 }
 \arguments{
 \item{df}{The full data set}
@@ -36,8 +36,10 @@ cv_wrapper(df, period.param, horizon.param, model.param, initial.param,
 
 \item{df.test}{test set}
 
+\item{main.accuracy.metric}{main accuracy metric}
+
 \item{debug}{For debug}
 }
 \description{
-Function used to simplify the cross validation workflow in ProphetWrapper
+Function used to simplify the cross validation workflow in ProphetWrapper (not exported)
 }

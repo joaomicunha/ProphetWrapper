@@ -1,7 +1,7 @@
 
 #' cv_wrapper
 #'
-#' Function used to simplify the cross validation workflow in ProphetWrapper
+#' Function used to simplify the cross validation workflow in ProphetWrapper (not exported)
 #'
 #' @param df The full data set
 #' @param period.param Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used.
@@ -16,13 +16,14 @@
 #' @param changepoint.prior.scale_cv parameters from list.params
 #' @param regressor.prior.scale_cv parameters from list.params
 #' @param holidays.prior.scale_cv parameters from list.params
+#' @param main.accuracy.metric main accuracy metric
 #' @param df.test test set
 #'
 #' @import magrittr
 #'
 #'
 
-cv_wrapper = function(df, period.param, horizon.param, model.param, initial.param, list.params, judgmental.forecasts, regressor1_cv, regressor2_cv, changepoint.prior.scale_cv, regressor.prior.scale_cv, holidays.prior.scale_cv, df.test, debug){
+cv_wrapper = function(df, period.param, horizon.param, model.param, initial.param, list.params, judgmental.forecasts, regressor1_cv, regressor2_cv, changepoint.prior.scale_cv, regressor.prior.scale_cv, holidays.prior.scale_cv, df.test, main.accuracy.metric, debug){
 
   if(debug){browser()}
 
@@ -41,7 +42,9 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
 
   cv.results.processed = cv.results %>%
                             dplyr::mutate(y = ifelse(rep(list.params$log_transformation, nrow(cv.results)), exp(y), y) ,
-                                          yhat = ifelse(rep(list.params$log_transformation, nrow(cv.results)), exp(yhat), yhat))
+                                          yhat = ifelse(rep(list.params$log_transformation, nrow(cv.results)), exp(yhat), yhat),
+                                          yhat_lower = ifelse(rep(list.params$log_transformation, nrow(cv.results)), exp(yhat_lower), yhat_lower),
+                                          yhat_upper = ifelse(rep(list.params$log_transformation, nrow(cv.results)), exp(yhat_upper), yhat_upper))
 
 
   if(is.null(judgmental.forecasts)){
@@ -71,23 +74,15 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                                 "dplyr::mutate(Date = as.Date(ds), ",
                                 paste0(adj_judmental_forecasts, collapse = ", "), ", ",
                                 paste0(adj_judmental_actual, collapse = ", "),
-                                ") %>%
-                                dplyr::group_by(cutoff) %>%
-                                dplyr::summarise(max_ds = max(ds),
-                                min_ds = min(ds),
-                                MAPE = MLmetrics::MAPE(y_pred = yhat, y_true = y),
-                                MSE = MLmetrics::MSE(y_pred = yhat, y_true = y),
-                                MAE = MLmetrics::MAE(y_pred = yhat, y_true = y),
-                                RMSE = MLmetrics::RMSE(y_pred = yhat, y_true = y),
-                                MPE = mean((y - yhat)/y)) %>%
-                                dplyr::ungroup()")
+                                ")")
+
 
     eval(parse(text = forecast_temp_eval))
 
   }
 
 
-  overview_cv_results = cv.results %>%
+  overview_cv_results = cv.results.processed %>%
                         dplyr::group_by(cutoff) %>%
                         dplyr::summarise(min_date_fold = min(ds),
                                          max_date_fold = max(ds),
@@ -106,6 +101,8 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                         dplyr::ungroup() %>%
                         dplyr::select(fold_number, everything())
 
+
+
     accuracies_cv =  data.frame(
                             Error_Type = "CV",
                             regressor1 = regressor1_cv,
@@ -113,14 +110,19 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                             changepoint.prior.scale = changepoint.prior.scale_cv,
                             regressor.prior.scale = regressor.prior.scale_cv,
                             holidays.prior.scale = holidays.prior.scale_cv,
-                            MAPE = mean(cv.results.processed$MAPE),
-                            MSE = mean(cv.results.processed$MSE),
-                            MAE = mean(cv.results.processed$MAE),
-                            RMSE = mean(cv.results.processed$RMSE),
-                            MPE = mean(cv.results.processed$MPE),
+                            MAPE = mean(overview_cv_results$MAPE),
+                            MSE = mean(overview_cv_results$MSE),
+                            MAE = mean(overview_cv_results$MAE),
+                            RMSE = mean(overview_cv_results$RMSE),
+                            MPE = mean(overview_cv_results$MPE),
                         stringsAsFactors = FALSE  )
 
-     return(list(accuracies_cv = accuracies_cv,
-                 overview_cv_results = overview_cv_results))
+    graph_cv = prophet::plot_cross_validation_metric(cv.results.processed, metric = ifelse(!(tolower(main.accuracy.metric) %in% c('mse', 'rmse', 'mae', 'mape', 'coverage')), 'mape', tolower(main.accuracy.metric)))
+
+     return(
+       list(accuracies_cv = accuracies_cv,
+                 overview_cv_results = overview_cv_results,
+                 graph_cv = graph_cv)
+       )
 
 }
