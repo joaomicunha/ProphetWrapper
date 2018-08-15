@@ -236,8 +236,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   list_params$changepoint.prior.scale = unique(list_params$changepoint.prior.scale)
   list_params$holidays.prior.scale = unique(list_params$holidays.prior.scale)
   list_params$regressor.prior.scale = unique(list_params$regressor.prior.scale)
-  list_params$regressor1 = unique(list_params$regressor1)
-  list_params$regressor2 = unique(list_params$regressor2)
+  list_params$regressor1 = unique(list_params$regressor1) %>% as.character()
+  list_params$regressor2 = unique(list_params$regressor2) %>% as.character()
 
 
   #~~~ Printing Informative Messeges =================================================================
@@ -428,7 +428,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
     #Add to the accuracy results the CV results:
     df_accuracy = if(best_model_in == 'cv'){
-      dplyr::bind_rows(test, train, accuracies_cv_df)
+      dplyr::bind_rows(test, train, accuracies_cv_df$accuracies_cv)
     }else{
       dplyr::bind_rows(test, train)
     }
@@ -470,7 +470,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     #Return final results:
     final_list = list(accuracy_overview = df_accuracy,
                       actuals_vs_forecast = actuals_vs_forecast,
-                      accuracy_cv = if(best_model_in == 'cv'){accuracies_cv_df}else{list()})
+                      accuracy_cv = if(best_model_in == 'cv'){accuracies_cv_df$accuracies_cv}else{list()},
+                      overview_cv = if(best_model_in == 'cv'){accuracies_cv_df$overview_cv_results}else{list()},
+                      graph_cv = if(best_model_in == 'cv'){accuracies_cv_df$graph_cv}else{list()})
     return(final_list)
 
   }
@@ -509,6 +511,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   final_accuracy = final[names(final) == "accuracy_overview"]
   final_predictions_actuals = final[names(final) == "actuals_vs_forecast"]
   final_accuracy_cv = final[names(final) == "accuracy_cv"]
+  final_overview_cv = final[names(final) == "overview_cv"]
 
   if(is.null(plotFrom)){
     plotFrom = min(df_train$ds)
@@ -568,6 +571,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                    dplyr::mutate(prediction_and_predictor = ifelse(train == 1, actuals, yhat)) %>%
                    dplyr::select(Date, actuals, yhat, yhat_lower, yhat_upper, prediction_and_predictor, train)
 
+  #Generate a ggplot graph from the best model:
   df_graph = df_best_model %>%
     dplyr::filter(as.Date(Date) >= as.Date(plotFrom)) %>%
     tidyr::gather(`Actuals vs Forecast`, Volumes, actuals:yhat)
@@ -590,12 +594,22 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   cat(paste0("\n\nThe ", nrow(grid), " models were trained and the accuracy (", main_accuracy_metric,") was estimated for the test set between ", min(df_test$ds), " to ", max(df_test$ds), ".\n"))
   cat(paste0("To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access 'Actuals_vs_Predictions (All or Best)'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'."))
 
+  #~~ FINAL OUTPUT:
+  final_overview_cv = final_overview_cv %>%
+    dplyr::bind_rows() %>%
+    dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale)
 
-  final_results = list(Accuracy_Overview = final_accuracy %>% dplyr::bind_rows() %>% dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale, 1, 0)),
-       Actuals_vs_Predictions_All = final_predictions_actuals %>% dplyr::bind_rows(),
-       Actual_vs_Predictions_Best = df_best_model,
-       Best_Parameters = accuracies,
-       Plot_Actual_Predictions = graph1)
+  final_accuracy = final_accuracy %>%
+    dplyr::bind_rows() %>%
+    dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale, 1, 0))
+
+  final_results = list(Accuracy_Overview = final_accuracy,
+                       Actuals_vs_Predictions_All = final_predictions_actuals %>% dplyr::bind_rows(),
+                       Actual_vs_Predictions_Best = df_best_model,
+                       Best_Parameters = accuracies,
+                       CV_Overview = if(best_model_in == 'cv'){final_overview_cv}else{NULL},
+                       Plot_Actual_Predictions = graph1
+                       )
 
   #Return all non-null elements:
   return(final_results[!sapply(final_results, is.null)] )

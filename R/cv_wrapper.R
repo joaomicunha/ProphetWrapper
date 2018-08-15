@@ -32,7 +32,7 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
   cv.results = prophet::cross_validation(model = model.param,
                                          period = period.param,
                                          initial = initial.param,
-                                         horizon = horizon.param + 1,
+                                         horizon = horizon.param,
                                          units = paste0(padr::get_interval(df$ds), "s"))
 
   #aggregate the results by cv cutoff:
@@ -86,6 +86,26 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
 
   }
 
+
+  overview_cv_results = cv.results %>%
+                        dplyr::group_by(cutoff) %>%
+                        dplyr::summarise(min_date_fold = min(ds),
+                                         max_date_fold = max(ds),
+                                         number_of_periods_fold = max_date_fold - min_date_fold,
+                                         MAPE = MLmetrics::MAPE(y_pred = yhat, y_true = y),
+                                         MSE = MLmetrics::MSE(y_pred = yhat, y_true = y),
+                                         MAE = MLmetrics::MAE(y_pred = yhat, y_true = y),
+                                         RMSE = MLmetrics::RMSE(y_pred = yhat, y_true = y),
+                                         MPE = mean((y - yhat)/y)) %>%
+                        dplyr::mutate(fold_number = row_number(),
+                                      regressor1 = regressor1_cv,
+                                      regressor2 = regressor2_cv,
+                                      changepoint.prior.scale = changepoint.prior.scale_cv,
+                                      regressor.prior.scale = regressor.prior.scale_cv,
+                                      holidays.prior.scale = holidays.prior.scale_cv) %>%
+                        dplyr::ungroup() %>%
+                        dplyr::select(fold_number, everything())
+
     accuracies_cv =  data.frame(
                             Error_Type = "CV",
                             regressor1 = regressor1_cv,
@@ -98,8 +118,9 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                             MAE = mean(cv.results.processed$MAE),
                             RMSE = mean(cv.results.processed$RMSE),
                             MPE = mean(cv.results.processed$MPE),
-                            stringsAsFactors = FALSE  )
+                        stringsAsFactors = FALSE  )
 
-     return(accuracies_cv)
+     return(list(accuracies_cv = accuracies_cv,
+                 overview_cv_results = overview_cv_results))
 
 }
