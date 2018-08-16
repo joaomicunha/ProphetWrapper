@@ -289,92 +289,21 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
     set.seed(seed = seed)
 
-    if(is.null(holidays)){
-
-      model = prophet::prophet(df = df_train,
-                               growth = "linear",
-                               weekly.seasonality = list_params$weekly.seasonality,
-                               changepoint.prior.scale = changepoint.prior.scale.param,
-                               yearly.seasonality  = list_params$yearly.seasonality,
-                               fit = FALSE)
-
-    }else{
-
-      model = prophet::prophet(df = df_train,
-                               growth = "linear",
-                               weekly.seasonality = list_params$weekly.seasonality,
-                               changepoint.prior.scale = changepoint.prior.scale.param,
-                               yearly.seasonality  = list_params$yearly.seasonality,
-                               holidays = holidays,
-                               holidays.prior.scale = holidays.prior.scale.param,
-                               fit = FALSE)
-    }
-
-    #adding regressors:
-    if(regressor1.param != "no_regressor"){
-
-      model = prophet::add_regressor(model, regressor1.param, standardize = list_params$standardize_regressor, prior.scale = regressor.prior.scale.param)
-
-    }
-
-    if(regressor2.param != "no_regressor"){
-
-      model = prophet::add_regressor(model, regressor2.param, standardize = list_params$standardize_regressor, prior.scale = regressor.prior.scale.param)
-
-    }
-
-    #fit the model:
-    model = prophet::fit.prophet(model, df = df_train)
-
-    future_prophet_complete = prophet::make_future_dataframe(model, periods = nrow(df_test), freq = padr::get_interval(df_all$ds)) %>%
-      dplyr::mutate(ds = as.Date(ds))
-
-    forecast <- predict(model, future_prophet_complete) %>%
-      dplyr::mutate(ds = as.Date(ds)) %>%
-      dplyr::left_join(df_all, by = "ds") %>%
-      dplyr::mutate(yhat = ifelse(rep(list_params$log_transformation, nrow(df_all)), exp(yhat), yhat),
-                    yhat_lower = ifelse(rep(list_params$log_transformation, nrow(df_all)), exp(yhat_lower), yhat_lower),
-                    yhat_upper = ifelse(rep(list_params$log_transformation, nrow(df_all)), exp(yhat_upper), yhat_upper))
+    models_output = modelling_prophet_function(df_all_modelling = df_all,
+                                        df_test_modelling = df_test,
+                                        df_train_modelling = df_train,
+                                        modelling_type = "test",
+                                        list_params_modelling = list_params,
+                                        changepoint.prior.scale.modelling = changepoint.prior.scale.param,
+                                        holidays.prior.scale.modelling = holidays.prior.scale.param,
+                                        regressor.prior.scale.modelling = regressor.prior.scale.param,
+                                        regressor1.modelling = regressor1.param,
+                                        regressor2.modelling = regressor2.param,
+                                        judgmental_forecasts.modelling = judgmental_forecasts,
+                                        holidays_modelling = holidays,
+                                        debug_modelling = debug)
 
 
-    ##### outputs
-
-    # If judgemental forecast points are parsed we define them here by parsing these to ypred and y in the calculation of accuracy metrics:
-    if(!is.null(judgmental_forecasts)){
-
-      #Creating vectors of judgmental forecasts:
-      adj_judmental_forecasts = c()
-      adj_judmental_actual = c()
-
-      for(i in 1:length(judgmental_forecasts)){
-        adj_judmental_forecasts[i] = paste0("yhat = ifelse(as.Date(ds) == as.Date('", names(judgmental_forecasts[i]), "'), ", judgmental_forecasts[i], ", yhat)")
-        adj_judmental_actual[i] = paste0("target_var = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts[i]), "'), ", judgmental_forecasts[i], ", target_var)")
-      }
-
-      forecast_temp_eval = paste0("forecast_tmp = forecast %>%",
-                                  "dplyr::mutate(",
-                                  paste0(adj_judmental_forecasts, collapse = ", "), ", ",
-                                  paste0(adj_judmental_actual, collapse = ", "),
-                                  ") %>%
-                                  dplyr::select(ds, yhat, target_var)")
-
-      eval(parse(text = forecast_temp_eval))
-
-      y_pred_test = forecast_tmp$yhat[forecast_tmp$ds >= as.Date(min(df_test$ds))]
-      y_true_test = forecast_tmp$target_var[forecast_tmp$ds >= as.Date(min(df_test$ds))]
-
-      y_pred_train = forecast_tmp$yhat[forecast_tmp$ds < as.Date(min(df_test$ds))]
-      y_true_train = forecast_tmp$target_var[forecast_tmp$ds < as.Date(min(df_test$ds))]
-
-    }else{
-
-      y_pred_test = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test$ds))]
-      y_true_test = df_test$target_var
-
-      y_pred_train = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test$ds))]
-      y_true_train = df_train$target_var
-
-    }
 
     #Run Cross-Validated calculations if best_model_in == 'cv' is selected):
     if(best_model_in == "cv"){
@@ -386,7 +315,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                     initial.param = initial_cv,
                                     df.test = df_test,
                                     debug = debug,
-                                    model.param = model,
+                                    model.param = models_output$model,
                                     list.params = list_params,
                                     judgmental.forecasts = judgmental_forecasts,
                                     regressor1_cv = regressor1.param,
@@ -407,11 +336,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                          changepoint.prior.scale = changepoint.prior.scale.param,
                          regressor.prior.scale = regressor.prior.scale.param,
                          holidays.prior.scale = holidays.prior.scale.param,
-                         MAPE = MLmetrics::MAPE(y_pred = y_pred_test, y_true = y_true_test),
-                         MSE =  MLmetrics::MSE(y_pred = y_pred_test, y_true = y_true_test),
-                         MAE =  MLmetrics::MAE(y_pred = y_pred_test, y_true = y_true_test),
-                         RMSE = MLmetrics::RMSE(y_pred = y_pred_test, y_true = y_true_test),
-                         MPE = mean((y_true_test - y_pred_test)/y_true_test),
+                         MAPE = MLmetrics::MAPE(y_pred = models_output$train_test_actuals_preds$y_pred_test, y_true = models_output$train_test_actuals_preds$y_true_test),
+                         MSE =  MLmetrics::MSE(y_pred = models_output$train_test_actuals_preds$y_pred_test, y_true = models_output$train_test_actuals_preds$y_true_test),
+                         MAE =  MLmetrics::MAE(y_pred = models_output$train_test_actuals_preds$y_pred_test, y_true = models_output$train_test_actuals_preds$y_true_test),
+                         RMSE = MLmetrics::RMSE(y_pred = models_output$train_test_actuals_preds$y_pred_test, y_true = models_output$train_test_actuals_preds$y_true_test),
+                         MPE = mean((models_output$train_test_actuals_preds$y_true_test - models_output$train_test_actuals_preds$y_pred_test)/models_output$train_test_actuals_preds$y_true_test),
                          stringsAsFactors = FALSE)
 
       train = data.frame( Error_Type = "Train Set",
@@ -420,11 +349,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                           changepoint.prior.scale = changepoint.prior.scale.param,
                           regressor.prior.scale = regressor.prior.scale.param,
                           holidays.prior.scale = holidays.prior.scale.param,
-                          MAPE = MLmetrics::MAPE(y_pred = y_pred_train, y_true = y_true_train),
-                          MSE = MLmetrics::MSE(y_pred = y_pred_train, y_true = y_true_train),
-                          MAE = MLmetrics::MAE(y_pred = y_pred_train, y_true = y_true_train),
-                          RMSE = MLmetrics::RMSE(y_pred = y_pred_train, y_true = y_true_train),
-                          MPE = mean((y_true_train - y_pred_train)/y_true_train),
+                          MAPE = MLmetrics::MAPE(y_pred = models_output$train_test_actuals_preds$y_pred_train, y_true = models_output$train_test_actuals_preds$y_true_train),
+                          MSE = MLmetrics::MSE(y_pred = models_output$train_test_actuals_preds$y_pred_train, y_true = models_output$train_test_actuals_preds$y_true_train),
+                          MAE = MLmetrics::MAE(y_pred = models_output$train_test_actuals_preds$y_pred_train, y_true = models_output$train_test_actuals_preds$y_true_train),
+                          RMSE = MLmetrics::RMSE(y_pred = models_output$train_test_actuals_preds$y_pred_train, y_true = models_output$train_test_actuals_preds$y_true_train),
+                          MPE = mean((models_output$train_test_actuals_preds$y_true_train - models_output$train_test_actuals_preds$y_pred_train)/models_output$train_test_actuals_preds$y_true_train),
                           stringsAsFactors = FALSE)
 
     #Add to the accuracy results the CV results:
@@ -438,9 +367,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     holiday_dates = unique(holidays$ds)
 
 
-    actuals_vs_forecast = forecast %>%
+    actuals_vs_forecast = models_output$forecasts_all %>%
       dplyr::mutate(WeekDay = weekdays.Date(Date),
-                    Holiday = ifelse(rep(is.null(holidays), nrow(forecast)), FALSE, (as.Date(Date) %in% as.Date(holiday_dates))),
+                    Holiday = ifelse(rep(is.null(holidays), nrow(models_output$forecasts_all)), FALSE, (as.Date(Date) %in% as.Date(holiday_dates))),
                     actuals = target_var,
                     diff_abs = abs(actuals - yhat)/actuals,
                     diff = (actuals - yhat)/actuals,
