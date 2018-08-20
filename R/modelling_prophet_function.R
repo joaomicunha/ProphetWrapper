@@ -68,7 +68,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
     }
 
     #fit the model:
-    model = prophet::fit.prophet(model, df = df_modelling)
+    model = prophet::fit.prophet(model, df = df_modelling,  algorithm = 'Newton')
 
     future_prophet_complete = prophet::make_future_dataframe(model, periods = nrow(df_test_modelling), freq = padr::get_interval(df_all_modelling$ds)) %>%
       dplyr::mutate(ds = as.Date(ds))

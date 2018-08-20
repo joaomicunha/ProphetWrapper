@@ -484,7 +484,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     ggplot2::scale_y_continuous("\nActuals/Forecasts\n", labels = scales::comma_format()) +
     ggplot2::scale_x_date(name = "\nDate", breaks = scales::date_breaks("2 months")) +
     ggthemes::scale_color_tableau(palette = 'tableau10medium') +
-    ggtitle(label = "Actuals vs Forecasts", subtitle = paste0("From: ", min(df_graph$Date), " To: ", min(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
+    ggtitle(label = "Actuals vs Forecasts", subtitle = paste0("From: ", min(df_graph$Date), " To: ", max(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
     theme(legend.position = "bottom")
 
 
