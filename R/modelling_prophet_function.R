@@ -49,7 +49,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                                weekly.seasonality = list_params_modelling$weekly.seasonality,
                                changepoint.prior.scale = changepoint.prior.scale.modelling,
                                yearly.seasonality  = list_params_modelling$yearly.seasonality,
-                               holidays = holidays,
+                               holidays = holidays_modelling,
                                holidays.prior.scale = holidays.prior.scale.modelling,
                                fit = FALSE)
     }
@@ -75,10 +75,11 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
 
     forecast <- predict(model, future_prophet_complete) %>%
       dplyr::mutate(ds = as.Date(ds)) %>%
-      dplyr::left_join(df_all_modelling, by = "ds") %>%
-      dplyr::mutate(yhat = ifelse(rep(list_params_modelling$log_transformation, nrow(df_all_modelling)), exp(yhat), yhat),
-                    yhat_lower = ifelse(rep(list_params_modelling$log_transformation, nrow(df_all_modelling)), exp(yhat_lower), yhat_lower),
-                    yhat_upper = ifelse(rep(list_params_modelling$log_transformation, nrow(df_all_modelling)), exp(yhat_upper), yhat_upper))
+      dplyr::left_join(dplyr::select(df_all_modelling, -Date), by = "ds") %>%
+      dplyr::mutate(yhat = ifelse(rep(list_params_modelling$log_transformation, nrow(.)), exp(yhat), yhat),
+                    yhat_lower = ifelse(rep(list_params_modelling$log_transformation, nrow(.)), exp(yhat_lower), yhat_lower),
+                    yhat_upper = ifelse(rep(list_params_modelling$log_transformation, nrow(.)), exp(yhat_upper), yhat_upper)) %>%
+      dplyr::rename(Date = ds)
 
 
     ##### outputs
@@ -91,7 +92,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
       adj_judmental_actual = c()
 
       for(i in 1:length(judgmental_forecasts.modelling)){
-        adj_judmental_forecasts[i] = paste0("yhat = ifelse(as.Date(ds) == as.Date('", names(judgmental_forecasts.modelling[i]), "'), ", judgmental_forecasts.modelling[i], ", yhat)")
+        adj_judmental_forecasts[i] = paste0("yhat = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts.modelling[i]), "'), ", judgmental_forecasts.modelling[i], ", yhat)")
         adj_judmental_actual[i] = paste0("target_var = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts.modelling[i]), "'), ", judgmental_forecasts.modelling[i], ", target_var)")
       }
 
@@ -100,27 +101,58 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                                   paste0(adj_judmental_forecasts, collapse = ", "), ", ",
                                   paste0(adj_judmental_actual, collapse = ", "),
                                   ") %>%
-                                      dplyr::select(ds, yhat, target_var, yhat_lower, yhat_upper, Date)")
+                                      dplyr::select(Date, yhat, target_var, yhat_lower, yhat_upper, Date)")
 
       eval(parse(text = forecast_temp_eval))
 
-      y_pred_test = forecast_tmp$yhat[forecast_tmp$ds >= as.Date(min(df_test_modelling$ds))]
-      y_true_test = forecast_tmp$target_var[forecast_tmp$ds >= as.Date(min(df_test_modelling$ds))]
+      y_pred_test = forecast_tmp$yhat[forecast_tmp$Date >= as.Date(min(df_test_modelling$ds))]
+      y_true_test = forecast_tmp$target_var[forecast_tmp$Date >= as.Date(min(df_test_modelling$ds))]
 
-      y_pred_train = forecast_tmp$yhat[forecast_tmp$ds < as.Date(min(df_test_modelling$ds))]
-      y_true_train = forecast_tmp$target_var[forecast_tmp$ds < as.Date(min(df_test_modelling$ds))]
+      y_pred_train = forecast_tmp$yhat[forecast_tmp$Date < as.Date(min(df_test_modelling$ds))]
+      y_true_train = forecast_tmp$target_var[forecast_tmp$Date < as.Date(min(df_test_modelling$ds))]
 
     }else{
 
       forecast_tmp = forecast
 
-      y_pred_test = forecast$yhat[as.Date(forecast$ds) >= as.Date(min(df_test_modelling$ds))]
+      y_pred_test = forecast_tmp$yhat[as.Date(forecast_tmp$Date) >= as.Date(min(df_test_modelling$ds))]
       y_true_test = df_test_modelling$target_var
 
-      y_pred_train = forecast$yhat[as.Date(forecast$ds) < as.Date(min(df_test_modelling$ds))]
+      y_pred_train = forecast_tmp$yhat[as.Date(forecast_tmp$Date) < as.Date(min(df_test_modelling$ds))]
       y_true_train = df_modelling$target_var
 
     }
+
+    #Creating the forecast vs actuals data-frame:
+    holiday_dates = unique(holidays_modelling$ds)
+
+    forecast_tmp = forecast_tmp %>%
+      dplyr::mutate(WeekDay = weekdays.Date(Date),
+                    Holiday = ifelse(rep(is.null(holidays_modelling), nrow(forecast)), FALSE, (as.Date(Date) %in% as.Date(holiday_dates))),
+                    actuals = target_var,
+                    diff_abs = abs(actuals - yhat)/actuals,
+                    diff = (actuals - yhat)/actuals,
+                    changepoint.prior.scale = changepoint.prior.scale.modelling,
+                    regressor.prior.scale = regressor.prior.scale.modelling,
+                    holidays.prior.scale = holidays.prior.scale.modelling,
+                    regressor1 = regressor1.modelling,
+                    regressor2 = regressor2.modelling,
+                    train = ifelse(as.Date(Date) > max(as.Date(df_modelling$ds)), 0, 1)) %>%
+      dplyr::select(Date,
+                    regressor1,
+                    regressor2,
+                    changepoint.prior.scale,
+                    regressor.prior.scale,
+                    holidays.prior.scale,
+                    actuals,
+                    yhat,
+                    yhat_lower,
+                    yhat_upper,
+                    diff_abs,
+                    diff,
+                    WeekDay,
+                    Holiday,
+                    train)
 
     return(
 

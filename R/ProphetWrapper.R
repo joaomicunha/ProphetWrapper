@@ -363,43 +363,10 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
       dplyr::bind_rows(test, train)
     }
 
-    #Create the final actual vs forecast table:
-    holiday_dates = unique(holidays$ds)
-
-
-    actuals_vs_forecast = models_output$forecasts_all %>%
-      dplyr::mutate(WeekDay = weekdays.Date(Date),
-                    Holiday = ifelse(rep(is.null(holidays), nrow(models_output$forecasts_all)), FALSE, (as.Date(Date) %in% as.Date(holiday_dates))),
-                    actuals = target_var,
-                    diff_abs = abs(actuals - yhat)/actuals,
-                    diff = (actuals - yhat)/actuals,
-                    changepoint.prior.scale = changepoint.prior.scale.param,
-                    regressor.prior.scale = regressor.prior.scale.param,
-                    holidays.prior.scale = holidays.prior.scale.param,
-                    regressor1 = regressor1.param,
-                    regressor2 = regressor2.param,
-                    train = ifelse(as.Date(Date) >= min(as.Date(df_test$ds)), 0, 1)) %>%
-      dplyr::select(Date,
-                    regressor1,
-                    regressor2,
-                    changepoint.prior.scale,
-                    regressor.prior.scale,
-                    holidays.prior.scale,
-                    actuals,
-                    yhat,
-                    yhat_lower,
-                    yhat_upper,
-                    diff_abs,
-                    diff,
-                    WeekDay,
-                    Holiday,
-                    train)
-
-
 
     #Return final results:
     final_list = list(accuracy_overview = df_accuracy,
-                      actuals_vs_forecast = actuals_vs_forecast,
+                      actuals_vs_forecast = models_output$forecasts_all,
                       accuracy_cv = if(best_model_in == 'cv'){accuracies_cv_df$accuracies_cv}else{list()},
                       overview_cv = if(best_model_in == 'cv'){accuracies_cv_df$overview_cv_results}else{list()},
                       graph_cv = if(best_model_in == 'cv'){accuracies_cv_df[[3]]}else{list()}) %>%
@@ -525,10 +492,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   graph_final = invisible(gridExtra::arrangeGrob(graph2, graph1, nrow = 2, heights = c(0.3, 2)))
 
 
-  cat(paste0("\n\nThe ", nrow(grid), " models were trained and the accuracy (", main_accuracy_metric,") was estimated for the test set between ", min(df_test$ds), " to ", max(df_test$ds), ".\n"))
-  cat(paste0("To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access 'Actuals_vs_Predictions (All or Best)'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'."))
 
-  #~~ FINAL OUTPUT:
+  #~~ FINAL OUTPUT: In this section we prepare the final outputs to be exported on the final list object:
+
   final_overview_cv = final_overview_cv %>%
     dplyr::bind_rows() %>%
     dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale)
@@ -540,17 +506,37 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   final_graph_cv = final[names(final) == paste0("graph_cv", accuracies$regressor1, accuracies$regressor2, accuracies$changepoint.prior.scale, accuracies$regressor.prior.scale, accuracies$holidays.prior.scale)]
 
+  #Retraining a final model with the best parameters on full data:
+  models_output = modelling_prophet_function(df_all_modelling = df_all,
+                                             df_test_modelling = df_test,
+                                             df_train_modelling = df_train,
+                                             modelling_type = "final",
+                                             list_params_modelling = list_params,
+                                             changepoint.prior.scale.modelling = accuracies$changepoint.prior.scale,
+                                             holidays.prior.scale.modelling = accuracies$holidays.prior.scale,
+                                             regressor.prior.scale.modelling = accuracies$regressor.prior.scale,
+                                             regressor1.modelling = accuracies$regressor1,
+                                             regressor2.modelling = accuracies$regressor2,
+                                             judgmental_forecasts.modelling = judgmental_forecasts,
+                                             holidays_modelling = holidays,
+                                             debug_modelling = debug)
 
-  final_results = list(Accuracy_Overview = final_accuracy,
+  final_results = list(
+                       Final_Forecasts = models_output$forecasts_all,
+                       Accuracy_Overview = final_accuracy,
                        Actuals_vs_Predictions_All = final_predictions_actuals %>% dplyr::bind_rows(),
                        Actual_vs_Predictions_Best = df_best_model,
                        Best_Parameters = accuracies,
                        CV_Overview = if(best_model_in == 'cv'){final_overview_cv}else{NULL},
-                       Plot_CV_Accuracy = final_graph_cv,
+                       Plot_CV_Accuracy =  if(best_model_in == 'cv'){final_graph_cv}else{NULL},
                        Plot_Actual_Predictions = graph1
                        )
 
   #Return all non-null elements:
+
+  cat(paste0("\n\nThe ", nrow(grid), " models were trained and the accuracy (", main_accuracy_metric,") was estimated for the test set between ", min(df_test$ds), " to ", max(df_test$ds), ".\n"))
+  cat(paste0("To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access 'Actuals_vs_Predictions (All or Best)'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'."))
+
   return(final_results[!sapply(final_results, is.null)] )
 
 

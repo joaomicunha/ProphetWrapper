@@ -27,6 +27,8 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
 
   if(debug){browser()}
 
+  cat("\n\nCross-Validation initiated ...\n\n")
+
   #If no horizon parameter is set we default to the size of the test set:
   horizon.param =  ifelse(is.null(horizon.param), nrow(df.test), horizon.param)
 
@@ -34,7 +36,9 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                                          period = period.param,
                                          initial = initial.param,
                                          horizon = horizon.param,
-                                         units = paste0(padr::get_interval(df$ds), "s"))
+                                         units = paste0(padr::get_interval(df$ds), "s")) %>%
+                            dplyr::mutate(Date = ds)
+
 
   #aggregate the results by cv cutoff:
   # Have to take into account that the results can potentially be log transformed and/or affected by judgemental forecasts:
@@ -49,16 +53,7 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
 
   if(is.null(judgmental.forecasts)){
 
-    cv.results.processed = cv.results.processed %>%
-                              dplyr::group_by(cutoff) %>%
-                              dplyr::summarise(max_ds = max(ds),
-                                               min_ds = min(ds),
-                                               MAPE = MLmetrics::MAPE(y_pred = yhat, y_true = y),
-                                               MSE = MLmetrics::MSE(y_pred = yhat, y_true = y),
-                                               MAE = MLmetrics::MAE(y_pred = yhat, y_true = y),
-                                               RMSE = MLmetrics::RMSE(y_pred = yhat, y_true = y),
-                                               MPE = mean((y - yhat)/y)) %>%
-                              dplyr::ungroup()
+    cv.results.final = cv.results.processed
 
   }else{
 
@@ -66,12 +61,12 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
     adj_judmental_actual = c()
 
     for(i in 1:length(judgmental.forecasts)){
-      adj_judmental_forecasts[i] = paste0("yhat = ifelse(as.Date(ds) == as.Date('", names(judgmental.forecasts[i]), "'), ", judgmental.forecasts[i], ", yhat)")
+      adj_judmental_forecasts[i] = paste0("yhat = ifelse(as.Date(Date) == as.Date('", names(judgmental.forecasts[i]), "'), ", judgmental.forecasts[i], ", yhat)")
       adj_judmental_actual[i] = paste0("y = ifelse(as.Date(Date) == as.Date('", names(judgmental.forecasts[i]), "'), ", judgmental.forecasts[i], ", y)")
     }
 
-    forecast_temp_eval = paste0("cv.results.processed = cv.results.processed %>%",
-                                "dplyr::mutate(Date = as.Date(ds), ",
+    forecast_temp_eval = paste0("cv.results.final = cv.results.processed %>%",
+                                "dplyr::mutate(",
                                 paste0(adj_judmental_forecasts, collapse = ", "), ", ",
                                 paste0(adj_judmental_actual, collapse = ", "),
                                 ")")
@@ -82,10 +77,10 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
   }
 
 
-  overview_cv_results = cv.results.processed %>%
+  overview_cv_results = cv.results.final %>%
                         dplyr::group_by(cutoff) %>%
-                        dplyr::summarise(min_date_fold = min(ds),
-                                         max_date_fold = max(ds),
+                        dplyr::summarise(min_date_fold = min(Date),
+                                         max_date_fold = max(Date),
                                          number_of_periods_fold = max_date_fold - min_date_fold,
                                          MAPE = MLmetrics::MAPE(y_pred = yhat, y_true = y),
                                          MSE = MLmetrics::MSE(y_pred = yhat, y_true = y),
@@ -117,7 +112,7 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                             MPE = mean(overview_cv_results$MPE),
                         stringsAsFactors = FALSE  )
 
-    graph_cv = prophet::plot_cross_validation_metric(cv.results.processed, metric = ifelse(!(tolower(main.accuracy.metric) %in% c('mse', 'rmse', 'mae', 'mape', 'coverage')), 'mape', tolower(main.accuracy.metric)))
+    graph_cv = prophet::plot_cross_validation_metric(cv.results.final, metric = ifelse(!(tolower(main.accuracy.metric) %in% c('mse', 'rmse', 'mae', 'mape', 'coverage')), 'mape', tolower(main.accuracy.metric)))
 
      return(
        list(accuracies_cv = accuracies_cv,
