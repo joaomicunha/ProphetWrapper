@@ -40,6 +40,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                                weekly.seasonality = list_params_modelling$weekly.seasonality,
                                changepoint.prior.scale = changepoint.prior.scale.modelling,
                                yearly.seasonality  = list_params_modelling$yearly.seasonality,
+                               daily.seasonality = list_params_modelling$daily.seasonality,
                                fit = FALSE)
 
     }else{
@@ -49,6 +50,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                                weekly.seasonality = list_params_modelling$weekly.seasonality,
                                changepoint.prior.scale = changepoint.prior.scale.modelling,
                                yearly.seasonality  = list_params_modelling$yearly.seasonality,
+                               daily.seasonality = list_params_modelling$daily.seasonality,
                                holidays = holidays_modelling,
                                holidays.prior.scale = holidays.prior.scale.modelling,
                                fit = FALSE)
@@ -68,7 +70,19 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
     }
 
     #fit the model:
-    model = prophet::fit.prophet(model, df = df_modelling,  algorithm = 'Newton')
+    model = tryCatch(
+      {
+        cat("\nUsing the default optimiser\n")
+        prophet::fit.prophet(model, df = df_modelling)
+      },
+      error = function(cond) {
+        cat("\nUsing optimiser algorithm: Newton\n")
+        prophet::fit.prophet(model, df = df_modelling, algorithm = 'Newton')
+      },
+      warning = function(cond) {
+        cat("\nUsing optimiser algorithm: Newton\n")
+        prophet::fit.prophet(model, df = df_modelling, algorithm = 'Newton')
+      })
 
     future_prophet_complete = prophet::make_future_dataframe(model, periods = nrow(df_test_modelling), freq = padr::get_interval(df_all_modelling$ds)) %>%
       dplyr::mutate(ds = as.Date(ds))

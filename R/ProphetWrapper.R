@@ -16,6 +16,7 @@
 #'  \item{\strong{holidays.prior.scale}}   {A regularization parameter (vector or single value) for the holidays effects. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default this parameter is 10, which provides very little regularization. Reducing this parameter dampens holiday effects. Increasing it will make the holidays effect more flexible.}
 #'  \item{\strong{weekly.seasonality}}  {Fit weekly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
 #'  \item{\strong{yearly.seasonality}}  {Fit yearly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
+#'  \item{\strong{daily.seasonality}}  {Fit daily seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
 #'  \item{\strong{regressor1}}  {The name of the first external regressor (or regressors) to include in the model. It has to exist on df as a column. If a vector is parsed, 1 regressor at a time is tested (as a model parameter essentially). If "no_regressor" is parsed, a univariate time-series model is estimated. "no_regressor" can be parsed as an element of the vector as well. }
 #'  \item{\strong{regressor2}}  {The name of the second external regressor (or regressors) to include in the model. It has to exist on df as a column. If a vector is parsed, 1 regressor at a time is tested (in combination with regressor1 if parsed). If "no_regressor" is parsed, a univariate time-series model is estimated. "no_regressor" can be parsed as an element of the vector as well. }
 #'  \item{\strong{standardize_regressor}}  {Bool, specify whether this regressor will be standardized prior to fitting. Can be 'auto' (standardize if not binary), True, or False.}
@@ -150,8 +151,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     stop("The 'main_accuracy_metric' argument has to be either MAPE, MSE, MAE, RMSE or MPE (it defaults to MAPE).")
   }
 
-  if(sum(names(list_params) %in% c("weekly.seasonality", "yearly.seasonality", "standardize_regressor", "log_transformation", "target_variable", "regressor1", "regressor2" )) != 7){
-    stop(paste0("The list_params argument has to include the following elements:, ", paste0(c("weekly.seasonality", "yearly.seasonality", "standardize_regressor", "log_transformation", "target_variable", "regressor1", "regressor2" ), collapse = ", "), ","))
+  if(sum(names(list_params) %in% c("weekly.seasonality", "yearly.seasonality", "standardize_regressor", "log_transformation", "target_variable", "regressor1", "regressor2", "daily.seasonality" )) != 8){
+    stop(paste0("The list_params argument has to include the following elements:, ", paste0(c("weekly.seasonality", "yearly.seasonality", "standardize_regressor", "log_transformation", "target_variable", "regressor1", "regressor2", "daily.seasonality" ), collapse = ", "), ","))
   }
 
   length_reg1 = length(list_params$regressor1)
@@ -185,6 +186,10 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   if(list_params$yearly.seasonality != FALSE & list_params$yearly.seasonality != TRUE & !is.numeric(list_params$yearly.seasonality)){
     stop("The 'list_params$yearly.seasonality' argument has to be a bolean (TRUE or FALSE) or a number representing the Fourier terms to generate.")
+  }
+
+  if(list_params$daily.seasonality != FALSE & list_params$daily.seasonality != TRUE & !is.numeric(list_params$daily.seasonality)){
+    stop("The 'list_params$daily.seasonality' argument has to be a bolean (TRUE or FALSE) or a number representing the Fourier terms to generate.")
   }
 
   if(list_params$standardize_regressor != FALSE & list_params$standardize_regressor != TRUE){
@@ -507,6 +512,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   final_graph_cv = final[names(final) == paste0("graph_cv", accuracies$regressor1, accuracies$regressor2, accuracies$changepoint.prior.scale, accuracies$regressor.prior.scale, accuracies$holidays.prior.scale)]
 
   #Retraining a final model with the best parameters on full data:
+
+  cat("\nRunning the final optimised model on all available data ...\n")
+
   models_output = modelling_prophet_function(df_all_modelling = df_all,
                                              df_test_modelling = df_test,
                                              df_train_modelling = df_train,
