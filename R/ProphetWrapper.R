@@ -246,7 +246,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
 
   #~~~ Printing Informative Messeges =================================================================
-
+  cat(paste0("*** Forecasting the target variable: ", list_params$target_variable, " ***\n\n"))
   cat(paste0("We are testing Prophet models for ", length(list_params$changepoint.prior.scale), " values of changepoint.prior.scale and ", length(list_params$regressor.prior.scale), " of regressor.prior.scale, ", length(list_params$regressor1),   " regressors1 and ", length(list_params$regressor2), " regressors2,", length(list_params$holidays.prior.scale), " values of holidays.prior.scale. This is a total of ", length(list_params$regressor.prior.scale) * length(list_params$changepoint.prior.scale) * length(list_params$regressor1) * length(list_params$regressor2) * length(list_params$holidays.prior.scale), " models.\n\n"))
   #cat(paste0("If there are no surprises, it should take maximum of ", round(((length(list_params$regressor.prior.scale) * length(list_params$changepoint.prior.scale) * length(list_params$regressor1) * length(list_params$regressor2) * length(list_params$holidays.prior.scale)) * 10)/60, 2), " minutes to run ...\n\n"))
 
@@ -283,7 +283,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                      regressor.prior.scale = list_params$regressor.prior.scale,
                      regressor1 = list_params$regressor1,
                      holidays.prior.scale = list_params$holidays.prior.scale,
-                     regressor2 = list_params$regressor2)
+                     regressor2 = list_params$regressor2,
+                     stringsAsFactors = F)
 
   #Create the function we will use to apply to each combination of parameters/arguments of grid:
   create_predictions_and_outputs_fun = function(changepoint.prior.scale.param, regressor.prior.scale.param, regressor1.param, holidays.prior.scale.param, regressor2.param){
@@ -488,8 +489,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     ggthemes::theme_tufte() +
     ggplot2::scale_y_continuous("\nActuals/Forecasts\n", labels = scales::comma_format()) +
     ggplot2::scale_x_date(name = "\nDate", breaks = scales::date_breaks("2 months")) +
-    ggthemes::scale_color_tableau(palette = 'tableau10medium') +
-    ggtitle(label = "Actuals vs Forecasts", subtitle = paste0("From: ", min(df_graph$Date), " To: ", max(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
+    #ggthemes::scale_color_tableau(palette = 'tableau10medium') +
+    ggtitle(label = paste0("Actuals vs Forecasts (", list_params$target_variable, ")"), subtitle = paste0("From: ", min(df_graph$Date), " To: ", max(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
     theme(legend.position = "bottom")
 
 
@@ -515,6 +516,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   cat("\nRunning the final optimised model on all available data ...\n")
 
+  #Currently the final forecasts are only produced for cases where there is no regressors picked in the last model. This is because there is not regressors values for the future:
+  if(accuracies$regressor1 == 'no_regressor' & accuracies$regressor1 == 'no_regressor'){
+
   models_output = modelling_prophet_function(df_all_modelling = df_all,
                                              df_test_modelling = df_test,
                                              df_train_modelling = df_train,
@@ -528,6 +532,10 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                              judgmental_forecasts.modelling = judgmental_forecasts,
                                              holidays_modelling = holidays,
                                              debug_modelling = debug)
+
+  }else{
+    models_output = list(forecasts_all = NULL)
+  }
 
   final_results = list(
                        Final_Forecasts = models_output$forecasts_all,

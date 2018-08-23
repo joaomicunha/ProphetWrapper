@@ -85,11 +85,12 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
       })
 
     future_prophet_complete = prophet::make_future_dataframe(model, periods = nrow(df_test_modelling), freq = padr::get_interval(df_all_modelling$ds)) %>%
-      dplyr::mutate(ds = as.Date(ds))
+      dplyr::mutate(ds = as.Date(ds)) %>%
+      dplyr::left_join(dplyr::select(df_all_modelling, -ds), by = c("ds" = "Date"))
 
     forecast <- predict(model, future_prophet_complete) %>%
       dplyr::mutate(ds = as.Date(ds)) %>%
-      dplyr::left_join(dplyr::select(df_all_modelling, -Date), by = "ds") %>%
+      dplyr::left_join(dplyr::select(df_all_modelling, ds, target_var), by = "ds") %>%
       dplyr::mutate(yhat = ifelse(rep(list_params_modelling$log_transformation, nrow(.)), exp(yhat), yhat),
                     yhat_lower = ifelse(rep(list_params_modelling$log_transformation, nrow(.)), exp(yhat_lower), yhat_lower),
                     yhat_upper = ifelse(rep(list_params_modelling$log_transformation, nrow(.)), exp(yhat_upper), yhat_upper)) %>%
