@@ -14,6 +14,7 @@
 #'  \item{\strong{changepoint.prior.scale}}  {A regularization parameter (vector or single value) for the automatic changepoint definitions of Prophet to define piecewise trend blocks. If the trend changes are being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the trend more flexible.}
 #'  \item{\strong{regressor.prior.scale}}  {A regularization parameter (vector or single value) for the external regressor. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the effect of regressor more flexible. This parameter is applied to both regressor1 and regressor2 (if parsed).}
 #'  \item{\strong{holidays.prior.scale}}   {A regularization parameter (vector or single value) for the holidays effects. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default this parameter is 10, which provides very little regularization. Reducing this parameter dampens holiday effects. Increasing it will make the holidays effect more flexible.}
+#'  \item{\strong{seasonality.prior.scale}}   {A regularization parameter (vector or single value) for the seasonality effects. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default this parameter is 10, which provides very little regularization. Reducing this parameter dampens seasonality effects. Increasing it will make the holidays effect more flexible.}
 #'  \item{\strong{weekly.seasonality}}  {Fit weekly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
 #'  \item{\strong{yearly.seasonality}}  {Fit yearly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
 #'  \item{\strong{daily.seasonality}}  {Fit daily seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
@@ -62,6 +63,7 @@
 #' regressor.prior.scale = c(0.01, 0.02),
 #' weekly.seasonality = TRUE,
 #' yearly.seasonality = TRUE,
+#' daily.seasonality = TRUE,
 #' standardize_regressor = TRUE,
 #' log_transformation = TRUE,
 #' target_variable = "y",
@@ -204,6 +206,10 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     stop("The 'list_params$changepoint.prior.scale' argument has to be a numeric vector.")
   }
 
+  if(class(list_params$seasonality.prior.scale) != "numeric" & !is.null(list_params$seasonality.prior.scale)){
+    stop("The 'list_params$seasonality.prior.scale' argument has to be a numeric vector.")
+  }
+
   if(class(list_params$regressor.prior.scale) != "numeric" & !is.null(list_params$regressor.prior.scale)){
     stop("The 'list_params$regressor.prior.scale' argument has to be a numeric vector.")
   }
@@ -236,9 +242,13 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   if(is.null(list_params$holidays.prior.scale)){list_params$holidays.prior.scale = 10; cat("Defaulting holidays.prior.scale to 10 ... \n\n")}
 
+  if(is.null(list_params$seasonality.prior.scale)){list_params$seasonality.prior.scale = 10; cat("Defaulting seasonality.prior.scale to 10 ... \n\n")}
+
+
   #cleaning the parameters to avoid duplication:
 
   list_params$changepoint.prior.scale = unique(list_params$changepoint.prior.scale)
+  list_params$seasonality.prior.scale = unique(list_params$seasonality.prior.scale)
   list_params$holidays.prior.scale = unique(list_params$holidays.prior.scale)
   list_params$regressor.prior.scale = unique(list_params$regressor.prior.scale)
   list_params$regressor1 = unique(list_params$regressor1) %>% as.character()
@@ -280,6 +290,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   #~~~ Create a list with predictions and accuracy data.frames for each combination of  changepoint.prior.scale and prior.scale. =================================================================
 
   grid = expand.grid(changepoint.prior.scale = list_params$changepoint.prior.scale,
+                     seasonality.prior.scale = list_params$seasonality.prior.scale,
                      regressor.prior.scale = list_params$regressor.prior.scale,
                      regressor1 = list_params$regressor1,
                      holidays.prior.scale = list_params$holidays.prior.scale,
@@ -287,7 +298,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                      stringsAsFactors = F)
 
   #Create the function we will use to apply to each combination of parameters/arguments of grid:
-  create_predictions_and_outputs_fun = function(changepoint.prior.scale.param, regressor.prior.scale.param, regressor1.param, holidays.prior.scale.param, regressor2.param){
+  create_predictions_and_outputs_fun = function(changepoint.prior.scale.param, regressor.prior.scale.param, regressor1.param, holidays.prior.scale.param, regressor2.param, seasonality.prior.scale.param){
 
     if(debug){browser()}
 
@@ -302,6 +313,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                         list_params_modelling = list_params,
                                         changepoint.prior.scale.modelling = changepoint.prior.scale.param,
                                         holidays.prior.scale.modelling = holidays.prior.scale.param,
+                                        seasonality.prior.scale.modelling = seasonality.prior.scale.param,
                                         regressor.prior.scale.modelling = regressor.prior.scale.param,
                                         regressor1.modelling = regressor1.param,
                                         regressor2.modelling = regressor2.param,
@@ -327,6 +339,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                     regressor1_cv = regressor1.param,
                                     regressor2_cv = regressor2.param,
                                     changepoint.prior.scale_cv = changepoint.prior.scale.param,
+                                    seasonality.prior.scale_cv = seasonality.prior.scale.param,
                                     regressor.prior.scale_cv = regressor.prior.scale.param,
                                     holidays.prior.scale_cv = holidays.prior.scale.param,
                                     main.accuracy.metric = main_accuracy_metric)
@@ -340,6 +353,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                          regressor1 = regressor1.param,
                          regressor2 = regressor2.param,
                          changepoint.prior.scale = changepoint.prior.scale.param,
+                         seasonality.prior.scale = seasonality.prior.scale.param,
                          regressor.prior.scale = regressor.prior.scale.param,
                          holidays.prior.scale = holidays.prior.scale.param,
                          MAPE = MLmetrics::MAPE(y_pred = models_output$train_test_actuals_preds$y_pred_test, y_true = models_output$train_test_actuals_preds$y_true_test),
@@ -353,6 +367,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                           regressor1 = regressor1.param,
                           regressor2 = regressor2.param,
                           changepoint.prior.scale = changepoint.prior.scale.param,
+                          seasonality.prior.scale = seasonality.prior.scale.param,
                           regressor.prior.scale = regressor.prior.scale.param,
                           holidays.prior.scale = holidays.prior.scale.param,
                           MAPE = MLmetrics::MAPE(y_pred = models_output$train_test_actuals_preds$y_pred_train, y_true = models_output$train_test_actuals_preds$y_true_train),
@@ -376,7 +391,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                       accuracy_cv = if(best_model_in == 'cv'){accuracies_cv_df$accuracies_cv}else{list()},
                       overview_cv = if(best_model_in == 'cv'){accuracies_cv_df$overview_cv_results}else{list()},
                       graph_cv = if(best_model_in == 'cv'){accuracies_cv_df[[3]]}else{list()}) %>%
-      purrr::set_names("accuracy_overview", "actuals_vs_forecast", "accuracy_cv", "overview_cv", paste0("graph_cv", regressor1.param, regressor2.param, changepoint.prior.scale.param, regressor.prior.scale.param, holidays.prior.scale.param))
+      purrr::set_names("accuracy_overview", "actuals_vs_forecast", "accuracy_cv", "overview_cv", paste0("graph_cv", regressor1.param, regressor2.param, changepoint.prior.scale.param, seasonality.prior.scale.param, regressor.prior.scale.param, holidays.prior.scale.param))
 
 
 
@@ -389,6 +404,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     final = mapply(create_predictions_and_outputs_fun,
                    SIMPLIFY = F,
                    changepoint.prior.scale.param = grid$changepoint.prior.scale,
+                   seasonality.prior.scale.param = grid$seasonality.prior.scale,
                    regressor.prior.scale.param = grid$regressor.prior.scale,
                    regressor1.param = grid$regressor1,
                    holidays.prior.scale.param = grid$holidays.prior.scale,
@@ -401,6 +417,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     final = parallel::mcmapply(create_predictions_and_outputs_fun,
                                SIMPLIFY = F,
                                changepoint.prior.scale.param = grid$changepoint.prior.scale,
+                               seasonality.prior.scale.param = grid$seasonality.prior.scale,
                                regressor.prior.scale.param = grid$regressor.prior.scale,
                                regressor1.param = grid$regressor1,
                                holidays.prior.scale.param = grid$holidays.prior.scale,
@@ -434,6 +451,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                              dplyr::filter(grepl(pattern = best_model_in, x = Error_Type, ignore.case = TRUE)) %>%
                              dplyr::arrange(!!rlang::sym(main_accuracy_metric)) %>%
                              dplyr::select(changepoint.prior.scale,
+                                           seasonality.prior.scale,
                                            regressor.prior.scale,
                                            regressor1,
                                            regressor2,
@@ -446,6 +464,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                              dplyr::bind_rows() %>%
                              dplyr::arrange(!!rlang::sym(main_accuracy_metric)) %>%
                              dplyr::select(changepoint.prior.scale,
+                                           seasonality.prior.scale,
                                            regressor.prior.scale,
                                            regressor1,
                                            regressor2,
@@ -458,23 +477,23 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     accuracies = final_accuracy %>%
       dplyr::bind_rows() %>%
       dplyr::filter(grepl(pattern = "test|train", x = Error_Type, ignore.case = TRUE)) %>%
-      dplyr::select(Error_Type, changepoint.prior.scale, regressor.prior.scale, regressor1, regressor2, holidays.prior.scale, !!main_accuracy_metric) %>%
+      dplyr::select(Error_Type, changepoint.prior.scale, seasonality.prior.scale, regressor.prior.scale, regressor1, regressor2, holidays.prior.scale, !!main_accuracy_metric) %>%
       tidyr::spread(key = Error_Type, !!main_accuracy_metric) %>%
       dplyr::mutate(avg_accuracy_metric = (`Train Set` * train_set_imp_perc  + `Test Set` * (1- train_set_imp_perc)  )) %>%
       dplyr::arrange(avg_accuracy_metric) %>%
-      dplyr::select(changepoint.prior.scale, regressor.prior.scale, regressor1, regressor2, holidays.prior.scale) %>%
+      dplyr::select(changepoint.prior.scale, seasonality.prior.scale, regressor.prior.scale, regressor1, regressor2, holidays.prior.scale) %>%
       head(1)
 
   }
 
   accuracies_graph = final_accuracy %>%
     dplyr::bind_rows() %>%
-    dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale, regressor.prior.scale == accuracies$regressor.prior.scale, regressor1 == accuracies$regressor1, regressor2 == accuracies$regressor2, holidays.prior.scale == accuracies$holidays.prior.scale)
+    dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale, seasonality.prior.scale == accuracies$seasonality.prior.scale, regressor.prior.scale == accuracies$regressor.prior.scale, regressor1 == accuracies$regressor1, regressor2 == accuracies$regressor2, holidays.prior.scale == accuracies$holidays.prior.scale)
 
   #Best model predictions:
   df_best_model = final_predictions_actuals %>%
                    dplyr::bind_rows() %>%
-                   dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale, regressor.prior.scale == accuracies$regressor.prior.scale, regressor1 == accuracies$regressor1, regressor2 == accuracies$regressor2, holidays.prior.scale == accuracies$holidays.prior.scale) %>%
+                   dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale, seasonality.prior.scale == accuracies$seasonality.prior.scale, regressor.prior.scale == accuracies$regressor.prior.scale, regressor1 == accuracies$regressor1, regressor2 == accuracies$regressor2, holidays.prior.scale == accuracies$holidays.prior.scale) %>%
                    dplyr::mutate(prediction_and_predictor = ifelse(train == 1, actuals, yhat)) %>%
                    dplyr::select(Date, actuals, yhat, yhat_lower, yhat_upper, prediction_and_predictor, train)
 
@@ -503,14 +522,14 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   final_overview_cv = final_overview_cv %>%
     dplyr::bind_rows() %>%
-    dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale)
+    dplyr::filter(changepoint.prior.scale == accuracies$changepoint.prior.scale & seasonality.prior.scale == accuracies$seasonality.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale)
 
   final_accuracy = final_accuracy %>%
     dplyr::bind_rows() %>%
-    dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale, 1, 0))
+    dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & seasonality.prior.scale == accuracies$seasonality.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale, 1, 0))
 
 
-  final_graph_cv = final[names(final) == paste0("graph_cv", accuracies$regressor1, accuracies$regressor2, accuracies$changepoint.prior.scale, accuracies$regressor.prior.scale, accuracies$holidays.prior.scale)]
+  final_graph_cv = final[names(final) == paste0("graph_cv", accuracies$regressor1, accuracies$regressor2, accuracies$changepoint.prior.scale, accuracies$seasonality.prior.scale, accuracies$regressor.prior.scale, accuracies$holidays.prior.scale)]
 
   #Retraining a final model with the best parameters on full data:
 
@@ -525,6 +544,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                              modelling_type = "final",
                                              list_params_modelling = list_params,
                                              changepoint.prior.scale.modelling = accuracies$changepoint.prior.scale,
+                                             seasonality.prior.scale.modelling = accuracies$seasonality.prior.scale,
                                              holidays.prior.scale.modelling = accuracies$holidays.prior.scale,
                                              regressor.prior.scale.modelling = accuracies$regressor.prior.scale,
                                              regressor1.modelling = accuracies$regressor1,

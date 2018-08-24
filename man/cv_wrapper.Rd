@@ -6,8 +6,9 @@
 \usage{
 cv_wrapper(df, period.param, horizon.param, model.param, initial.param,
   list.params, judgmental.forecasts, regressor1_cv, regressor2_cv,
-  changepoint.prior.scale_cv, regressor.prior.scale_cv, holidays.prior.scale_cv,
-  df.test, main.accuracy.metric, debug)
+  changepoint.prior.scale_cv, seasonality.prior.scale_cv,
+  regressor.prior.scale_cv, holidays.prior.scale_cv, df.test,
+  main.accuracy.metric, debug)
 }
 \arguments{
 \item{df}{The full data set}
@@ -29,6 +30,8 @@ cv_wrapper(df, period.param, horizon.param, model.param, initial.param,
 \item{regressor2_cv}{parameters from list.params}
 
 \item{changepoint.prior.scale_cv}{parameters from list.params}
+
+\item{seasonality.prior.scale_cv}{parameters from list.params}
 
 \item{regressor.prior.scale_cv}{parameters from list.params}
 

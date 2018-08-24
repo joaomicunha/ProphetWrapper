@@ -14,6 +14,7 @@
 #' @param regressor1_cv parameters from list.params
 #' @param regressor2_cv parameters from list.params
 #' @param changepoint.prior.scale_cv parameters from list.params
+#' @param seasonality.prior.scale_cv parameters from list.params
 #' @param regressor.prior.scale_cv parameters from list.params
 #' @param holidays.prior.scale_cv parameters from list.params
 #' @param main.accuracy.metric main accuracy metric
@@ -23,7 +24,7 @@
 #'
 #'
 
-cv_wrapper = function(df, period.param, horizon.param, model.param, initial.param, list.params, judgmental.forecasts, regressor1_cv, regressor2_cv, changepoint.prior.scale_cv, regressor.prior.scale_cv, holidays.prior.scale_cv, df.test, main.accuracy.metric, debug){
+cv_wrapper = function(df, period.param, horizon.param, model.param, initial.param, list.params, judgmental.forecasts, regressor1_cv, regressor2_cv, changepoint.prior.scale_cv, seasonality.prior.scale_cv, regressor.prior.scale_cv, holidays.prior.scale_cv, df.test, main.accuracy.metric, debug){
 
   if(debug){browser()}
 
@@ -91,6 +92,7 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                                       regressor1 = regressor1_cv,
                                       regressor2 = regressor2_cv,
                                       changepoint.prior.scale = changepoint.prior.scale_cv,
+                                      seasonality.prior.scale = seasonality.prior.scale_cv,
                                       regressor.prior.scale = regressor.prior.scale_cv,
                                       holidays.prior.scale = holidays.prior.scale_cv) %>%
                         dplyr::ungroup() %>%
@@ -103,6 +105,7 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                             regressor1 = regressor1_cv,
                             regressor2 = regressor2_cv,
                             changepoint.prior.scale = changepoint.prior.scale_cv,
+                            seasonality.prior.scale = seasonality.prior.scale_cv,
                             regressor.prior.scale = regressor.prior.scale_cv,
                             holidays.prior.scale = holidays.prior.scale_cv,
                             MAPE = mean(overview_cv_results$MAPE),

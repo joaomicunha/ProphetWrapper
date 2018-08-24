@@ -9,6 +9,7 @@
 #' @param regressor1.modelling parameters from list.params
 #' @param regressor2.modelling parameters from list.params
 #' @param changepoint.prior.scale.modelling parameters from list.params
+#' @param seasonality.prior.scale.modelling parameters from list.params
 #' @param regressor.prior.scale.modelling parameters from list.params
 #' @param holidays.prior.scale.modelling parameters from list.params
 #' @param df_test_modelling test data-frame
@@ -22,7 +23,7 @@
 #'
 
 
-modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_train_modelling, modelling_type, list_params_modelling, changepoint.prior.scale.modelling, holidays.prior.scale.modelling, regressor.prior.scale.modelling, regressor1.modelling, regressor2.modelling, judgmental_forecasts.modelling, holidays_modelling, debug_modelling){
+modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_train_modelling, modelling_type, list_params_modelling, changepoint.prior.scale.modelling, holidays.prior.scale.modelling, regressor.prior.scale.modelling, seasonality.prior.scale.modelling, regressor1.modelling, regressor2.modelling, judgmental_forecasts.modelling, holidays_modelling, debug_modelling){
 
 
     if(debug_modelling){browser()}
@@ -38,6 +39,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
       model = prophet::prophet(df = df_modelling,
                                growth = "linear",
                                weekly.seasonality = list_params_modelling$weekly.seasonality,
+                               seasonality.prior.scale = seasonality.prior.scale.modelling,
                                changepoint.prior.scale = changepoint.prior.scale.modelling,
                                yearly.seasonality  = list_params_modelling$yearly.seasonality,
                                daily.seasonality = list_params_modelling$daily.seasonality,
@@ -49,6 +51,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                                growth = "linear",
                                weekly.seasonality = list_params_modelling$weekly.seasonality,
                                changepoint.prior.scale = changepoint.prior.scale.modelling,
+                               seasonality.prior.scale = seasonality.prior.scale.modelling,
                                yearly.seasonality  = list_params_modelling$yearly.seasonality,
                                daily.seasonality = list_params_modelling$daily.seasonality,
                                holidays = holidays_modelling,
@@ -148,6 +151,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                     diff_abs = abs(actuals - yhat)/actuals,
                     diff = (actuals - yhat)/actuals,
                     changepoint.prior.scale = changepoint.prior.scale.modelling,
+                    seasonality.prior.scale = seasonality.prior.scale.modelling,
                     regressor.prior.scale = regressor.prior.scale.modelling,
                     holidays.prior.scale = holidays.prior.scale.modelling,
                     regressor1 = regressor1.modelling,
@@ -157,6 +161,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                     regressor1,
                     regressor2,
                     changepoint.prior.scale,
+                    seasonality.prior.scale,
                     regressor.prior.scale,
                     holidays.prior.scale,
                     actuals,

@@ -19,6 +19,7 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
  \item{\strong{changepoint.prior.scale}}  {A regularization parameter (vector or single value) for the automatic changepoint definitions of Prophet to define piecewise trend blocks. If the trend changes are being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the trend more flexible.}
  \item{\strong{regressor.prior.scale}}  {A regularization parameter (vector or single value) for the external regressor. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default Prophet sets this parameter to 0.05. Increasing it will make the effect of regressor more flexible. This parameter is applied to both regressor1 and regressor2 (if parsed).}
  \item{\strong{holidays.prior.scale}}   {A regularization parameter (vector or single value) for the holidays effects. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default this parameter is 10, which provides very little regularization. Reducing this parameter dampens holiday effects. Increasing it will make the holidays effect more flexible.}
+ \item{\strong{seasonality.prior.scale}}   {A regularization parameter (vector or single value) for the seasonality effects. If the regressor is being overfit (too much flexibility) or underfit (not enough flexibility), you can adjust the strength of this argument. By default this parameter is 10, which provides very little regularization. Reducing this parameter dampens seasonality effects. Increasing it will make the holidays effect more flexible.}
  \item{\strong{weekly.seasonality}}  {Fit weekly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
  \item{\strong{yearly.seasonality}}  {Fit yearly seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
  \item{\strong{daily.seasonality}}  {Fit daily seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
@@ -84,6 +85,7 @@ parameters = list(changepoint.prior.scale = c(0.2, 0.3),
 regressor.prior.scale = c(0.01, 0.02),
 weekly.seasonality = TRUE,
 yearly.seasonality = TRUE,
+daily.seasonality = TRUE,
 standardize_regressor = TRUE,
 log_transformation = TRUE,
 target_variable = "y",
