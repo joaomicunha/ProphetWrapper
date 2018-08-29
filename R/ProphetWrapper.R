@@ -232,6 +232,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   #~~~ Defaulting Parameters =========================================================================
 
+  cat(paste0("*** Forecasting the target variable: ", list_params$target_variable, " ***\n\n"))
+
   if(is.null(list_params$changepoint.prior.scale)){list_params$changepoint.prior.scale = 0.05; cat("Defaulting changepoint.prior.scale to 0.05 ...\n\n")}
 
   if(is.null(list_params$regressor.prior.scale) & is.null(list_params$holidays.prior.scale)){list_params$regressor.prior.scale = 10; cat("Defaulting regressor.prior.scale to 10 ...\n\n")}
@@ -256,7 +258,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
 
   #~~~ Printing Informative Messeges =================================================================
-  cat(paste0("*** Forecasting the target variable: ", list_params$target_variable, " ***\n\n"))
   cat(paste0("We are testing Prophet models for ", length(list_params$changepoint.prior.scale), " values of changepoint.prior.scale and ", length(list_params$regressor.prior.scale), " of regressor.prior.scale, ", length(list_params$regressor1),   " regressors1 and ", length(list_params$regressor2), " regressors2,", length(list_params$holidays.prior.scale), " values of holidays.prior.scale. This is a total of ", length(list_params$regressor.prior.scale) * length(list_params$changepoint.prior.scale) * length(list_params$regressor1) * length(list_params$regressor2) * length(list_params$holidays.prior.scale), " models.\n\n"))
   #cat(paste0("If there are no surprises, it should take maximum of ", round(((length(list_params$regressor.prior.scale) * length(list_params$changepoint.prior.scale) * length(list_params$regressor1) * length(list_params$regressor2) * length(list_params$holidays.prior.scale)) * 10)/60, 2), " minutes to run ...\n\n"))
 

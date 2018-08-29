@@ -75,7 +75,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
     #fit the model:
     model = tryCatch(
       {
-        cat("\nUsing the default optimiser\n")
+        cat("\nUsing the default Stan optimiser: LBFGS\n")
         prophet::fit.prophet(model, df = df_modelling)
       },
       error = function(cond) {
