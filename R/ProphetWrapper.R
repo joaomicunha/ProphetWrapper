@@ -94,6 +94,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   if(debug){browser()}
 
+  initial_time = Sys.time()
+
 
   is.date <- function(x) inherits(x, 'Date')
 
@@ -232,15 +234,12 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   #~~~ Defaulting Parameters =========================================================================
 
-  cat(paste0("*** Forecasting the target variable: ", list_params$target_variable, " ***\n\n"))
+  cat(paste0("*** Forecasting the target variable: ", list_params$target_variable, " ***\n"))
+  cat(paste0("* Test Period from ", min(original$Date[original$train == 0]), " to ",  max(original$Date[original$train == 0]), " *\n\n"))
 
   if(is.null(list_params$changepoint.prior.scale)){list_params$changepoint.prior.scale = 0.05; cat("Defaulting changepoint.prior.scale to 0.05 ...\n\n")}
 
-  if(is.null(list_params$regressor.prior.scale) & is.null(list_params$holidays.prior.scale)){list_params$regressor.prior.scale = 10; cat("Defaulting regressor.prior.scale to 10 ...\n\n")}
-
-  if(is.null(list_params$regressor.prior.scale) & !is.null(list_params$holidays.prior.scale) & (sum(list_params$regressor2 != "no_regressor") <=1 | sum(list_params$regressor1 != "no_regressor") <=1)){list_params$regressor.prior.scale = list_params$holidays.prior.scale; cat("Defaulting regressor.prior.scale to holidays.prior.scale ...\n\n")}
-
-  if(is.null(list_params$regressor.prior.scale) & is.null(list_params$holidays.prior.scale) & (sum(list_params$regressor2 != "no_regressor") <=1 | sum(list_params$regressor1 != "no_regressor") <=1)){list_params$regressor.prior.scale = 10; cat("Defaulting regressor.prior.scale to 10 ...\n\n")}
+  if(is.null(list_params$regressor.prior.scale)){list_params$regressor.prior.scale = 0.05; cat("Defaulting regressor.prior.scale to 0.05 ... \n\n")}
 
   if(is.null(list_params$holidays.prior.scale)){list_params$holidays.prior.scale = 10; cat("Defaulting holidays.prior.scale to 10 ... \n\n")}
 
@@ -255,11 +254,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   list_params$regressor.prior.scale = unique(list_params$regressor.prior.scale)
   list_params$regressor1 = unique(list_params$regressor1) %>% as.character()
   list_params$regressor2 = unique(list_params$regressor2) %>% as.character()
-
-
-  #~~~ Printing Informative Messeges =================================================================
-  cat(paste0("We are testing Prophet models for ", length(list_params$changepoint.prior.scale), " values of changepoint.prior.scale and ", length(list_params$regressor.prior.scale), " of regressor.prior.scale, ", length(list_params$regressor1),   " regressors1 and ", length(list_params$regressor2), " regressors2,", length(list_params$holidays.prior.scale), " values of holidays.prior.scale. This is a total of ", length(list_params$regressor.prior.scale) * length(list_params$changepoint.prior.scale) * length(list_params$regressor1) * length(list_params$regressor2) * length(list_params$holidays.prior.scale), " models.\n\n"))
-  #cat(paste0("If there are no surprises, it should take maximum of ", round(((length(list_params$regressor.prior.scale) * length(list_params$changepoint.prior.scale) * length(list_params$regressor1) * length(list_params$regressor2) * length(list_params$holidays.prior.scale)) * 10)/60, 2), " minutes to run ...\n\n"))
 
 
   #~~~ Create Train and Testing Set =================================================================
@@ -297,6 +291,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                      holidays.prior.scale = list_params$holidays.prior.scale,
                      regressor2 = list_params$regressor2,
                      stringsAsFactors = F)
+
+  #~~~ Printing Informative Messeges =================================================================
+  cat(paste0("We are testing Prophet models for ", length(list_params$changepoint.prior.scale), " values of changepoint.prior.scale, ",length(list_params$seasonality.prior.scale), " values of seasonality.prior.scale, ", length(list_params$regressor.prior.scale), " of regressor.prior.scale, ", length(list_params$regressor1),   " of regressors1, ", length(list_params$regressor2), " of regressors2,", length(list_params$holidays.prior.scale), " values of holidays.prior.scale. This is a total of ", nrow(grid), " models.\n\n"))
 
   #Create the function we will use to apply to each combination of parameters/arguments of grid:
   create_predictions_and_outputs_fun = function(changepoint.prior.scale.param, regressor.prior.scale.param, regressor1.param, holidays.prior.scale.param, regressor2.param, seasonality.prior.scale.param){
@@ -529,30 +526,34 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     dplyr::bind_rows() %>%
     dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & seasonality.prior.scale == accuracies$seasonality.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale, 1, 0))
 
+  final_predictions_actuals = final_predictions_actuals %>%
+    dplyr::bind_rows() %>%
+    dplyr::mutate(best_model = ifelse(changepoint.prior.scale == accuracies$changepoint.prior.scale & seasonality.prior.scale == accuracies$seasonality.prior.scale & regressor.prior.scale == accuracies$regressor.prior.scale & regressor1 == accuracies$regressor1 & regressor2 == accuracies$regressor2 & holidays.prior.scale == accuracies$holidays.prior.scale, 1, 0))
+
 
   final_graph_cv = final[names(final) == paste0("graph_cv", accuracies$regressor1, accuracies$regressor2, accuracies$changepoint.prior.scale, accuracies$seasonality.prior.scale, accuracies$regressor.prior.scale, accuracies$holidays.prior.scale)]
 
   #Retraining a final model with the best parameters on full data:
-
-  cat("\nRunning the final optimised model on all available data ...\n")
-
   #Currently the final forecasts are only produced for cases where there is no regressors picked in the last model. This is because there is not regressors values for the future:
   if(accuracies$regressor1 == 'no_regressor' & accuracies$regressor1 == 'no_regressor'){
 
-  models_output = modelling_prophet_function(df_all_modelling = df_all,
-                                             df_test_modelling = df_test,
-                                             df_train_modelling = df_train,
-                                             modelling_type = "final",
-                                             list_params_modelling = list_params,
-                                             changepoint.prior.scale.modelling = accuracies$changepoint.prior.scale,
-                                             seasonality.prior.scale.modelling = accuracies$seasonality.prior.scale,
-                                             holidays.prior.scale.modelling = accuracies$holidays.prior.scale,
-                                             regressor.prior.scale.modelling = accuracies$regressor.prior.scale,
-                                             regressor1.modelling = accuracies$regressor1,
-                                             regressor2.modelling = accuracies$regressor2,
-                                             judgmental_forecasts.modelling = judgmental_forecasts,
-                                             holidays_modelling = holidays,
-                                             debug_modelling = debug)
+    cat("\nRunning the final optimised model on all available data ...\n")
+
+
+    models_output = modelling_prophet_function(df_all_modelling = df_all,
+                                               df_test_modelling = df_test,
+                                               df_train_modelling = df_train,
+                                               modelling_type = "final",
+                                               list_params_modelling = list_params,
+                                               changepoint.prior.scale.modelling = accuracies$changepoint.prior.scale,
+                                               seasonality.prior.scale.modelling = accuracies$seasonality.prior.scale,
+                                               holidays.prior.scale.modelling = accuracies$holidays.prior.scale,
+                                               regressor.prior.scale.modelling = accuracies$regressor.prior.scale,
+                                               regressor1.modelling = accuracies$regressor1,
+                                               regressor2.modelling = accuracies$regressor2,
+                                               judgmental_forecasts.modelling = judgmental_forecasts,
+                                               holidays_modelling = holidays,
+                                               debug_modelling = debug)
 
   }else{
     models_output = list(forecasts_all = NULL)
@@ -561,7 +562,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   final_results = list(
                        Final_Forecasts = models_output$forecasts_all,
                        Accuracy_Overview = final_accuracy,
-                       Actuals_vs_Predictions_All = final_predictions_actuals %>% dplyr::bind_rows(),
+                       Actuals_vs_Predictions_All = final_predictions_actuals,
                        Actual_vs_Predictions_Best = df_best_model,
                        Best_Parameters = accuracies,
                        CV_Overview = if(best_model_in == 'cv'){final_overview_cv}else{NULL},
@@ -571,7 +572,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   #Return all non-null elements:
 
-  cat(paste0("\n\nThe ", nrow(grid), " models were trained and the accuracy (", main_accuracy_metric,") was estimated for the test set between ", min(df_test$ds), " to ", max(df_test$ds), ".\n"))
+  cat(paste0("\n\nThe ", nrow(grid), " models were trained and the accuracy (", main_accuracy_metric,") was estimated for the test set between ", min(df_test$ds), " to ", max(df_test$ds), ". It took ", round(difftime(time1 = Sys.time(), time2 = initial_time, units = "mins" )), " minutes to run.\n"))
   cat(paste0("To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access 'Actuals_vs_Predictions (All or Best)'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'."))
 
   return(final_results[!sapply(final_results, is.null)] )
