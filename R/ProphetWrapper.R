@@ -507,7 +507,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     ggplot2::scale_y_continuous("\nActuals/Forecasts\n", labels = scales::comma_format()) +
     ggplot2::scale_x_date(name = "\nDate", breaks = scales::date_breaks("2 months")) +
     #ggthemes::scale_color_tableau(palette = 'tableau10medium') +
-    ggtitle(label = paste0("Actuals vs Forecasts (", list_params$target_variable, ")"), subtitle = paste0("From: ", min(df_graph$Date), " To: ", max(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
+    ggplot2::ggtitle(label = paste0("Actuals vs Forecasts (", list_params$target_variable, ")"), subtitle = paste0("From: ", min(df_graph$Date), " To: ", max(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
     theme(legend.position = "bottom")
 
 
@@ -556,6 +556,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                                debug_modelling = debug)
 
   }else{
+    cat("\nNot possible to run the final optimised model on all available data since the future values of the regressors were not made available \n")
     models_output = list(forecasts_all = NULL)
   }
 
@@ -575,7 +576,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   cat(paste0("\n\nThe ", nrow(grid), " models were trained and the accuracy (", main_accuracy_metric,") was estimated for the test set between ", min(df_test$ds), " to ", max(df_test$ds), ". It took ", round(difftime(time1 = Sys.time(), time2 = initial_time, units = "mins" )), " minutes to run.\n"))
   cat(paste0("To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access 'Actuals_vs_Predictions (All or Best)'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'."))
 
-  return(final_results[!sapply(final_results, is.null)] )
-
+  return(structure(.Data = final_results[!sapply(final_results, is.null)], class = "ProphetWrapper") )
 
   }

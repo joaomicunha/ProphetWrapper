@@ -1,6 +1,7 @@
 
 
 export(Prophet_Wrapper)
+export(Accuracies_Agg)
 
 import(magrittr)
 import(prophet)
