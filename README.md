@@ -75,7 +75,7 @@ xmas_days = data_frame(
 
 ```
 
-### The output of Prophet_Wrapper is an R list containing:
+### The output of Prophet_Wrapper is an R list with class 'ProphetWrapper' containing:
 
 - **Final_Forecasts:** A data-frame with final forecasts on unseen data produced by training the optimised model (based on 'main_accuracy_metric' and 'best_model_in' parameters) on the entire data. The forecast length (horizon) is set to be equal to the length of the test set. Notice that final forecasts are only produced for cases where the optimal model doesn't use regressors. This is because there is not regressors values for the future.
 
@@ -92,5 +92,17 @@ xmas_days = data_frame(
 - **Plot_CV_Accuracy:** A ggplot graph illustrating the performance on cross-validation for different horizon (look-ahead) periods. This output is only made available if best_model_in parameter is set to 'cv'.
 
 - **Plot_Actual_Predictions:** A ggplot graph of Actuals vs Predictions. The 'plotFrom' parameter controls from when to plot from.
+
+
+### Accuracies_Agg Function:
+
+Sometimes is useful to report/analyse the accuracy of several models at once and/or at different levels of aggregation (i.e. the forecasts were produced on a daily level but what is the accuracy of the monhtly aggregations). Accuracies_Agg function exported from ProphetWrapper can be used for this user cases. It takes a list of class 'ProphetWrapper' objects (output of prophet_wrapper function) and it outputs a list containing:
+
+- **Accuracies:** A data-frame with the accuracies of the best model for each element parsed in listProphet_Results argument.
+
+- **Graphs_Accuracy_Agg:** A list with plots of actuals vs forecasts of the best model for each element parsed in 'listProphet_Results' argument.
+
+Please refer to the ProphetWrapper::Accuracies_Agg() documentation for more details.
+
 
 
