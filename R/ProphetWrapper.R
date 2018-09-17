@@ -36,6 +36,12 @@
 #' @param period_cv Used if best_model_in == 'cv'. Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used (for more details see documentation of prophet::cross_validation function and/or check Details section below).
 #' @param initial_cv Used if best_model_in == 'cv'. Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation function and/or check Details section below).
 #' @param horizon_cv Used if best_model_in == 'cv'. Integer size of the horizon (for more details see documentation of prophet::cross_validation function and/or check Details section below).
+#' @param final_predictions final_predictions is the argument that will control the length/horizon of the final forecasts (the forecast generated from the optimised model trained on all available data). The values of final_predictions argument can be:
+#'  \itemize{
+#'  \item{\strong{integer}}  {If final_predictions is set to an integer, the final forecast horizon will have length final_predictions. Please note that if the final forecast uses regressors, these have to be parsed here as a data.frame (see below).}
+#'  \item{\strong{data.frame}} {A data.frame with columns 'Date', 'regressor1' and 'regressor2' with the future values of the regressors. If regressors are not used then an integer value can be used.}
+#'  \item{\strong{NULL (default)}} {If set to NULL, final_predictions is set to the length of the test set (assumes the test set is representative of the future horizon.)}
+#' }
 #' @param debug TRUE for browsing the function. Defaults to FALSE.
 #'
 #'
@@ -87,7 +93,7 @@
 
 
 
-Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "test", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 4, method_impute = "exponential", parallel = FALSE, seed = 12345, period_cv = NULL, initial_cv = NULL, horizon_cv = NULL, debug = FALSE){
+Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "test", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 4, method_impute = "exponential", parallel = FALSE, seed = 12345, period_cv = NULL, initial_cv = NULL, horizon_cv = NULL, final_predictions = NULL, debug = FALSE){
 
 
   #~~~ DEBUG =================================================================
@@ -232,6 +238,22 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     stop("The judgmental_forecasts parameter has to have numeric values.  If necessary please check documentation for an example.")
   }
 
+  if((class(final_predictions) == "numeric" | class(final_predictions) == "integer") & length(final_predictions) >1){
+    stop("'final_predictions' once set to numeric/integer will define the final forecast horizon. So it has to be length 1.")
+  }
+
+  if(sum(class(final_predictions) == "data.frame") >= 1 & sum(colnames(final_predictions) == "Date") == 0){
+    stop("'final_predictions' once set to data.frame it has to contain a column Date (class Date).")
+  }
+
+  if(sum(class(final_predictions) == "data.frame") >= 1 | class(final_predictions) == "ProphetWrapper"){
+    final_predictions = list(final_predictions)
+  }
+
+  if(length(final_predictions) == 2 & is.null(names(final_predictions))){
+    stop("'final_predictions' should be a named list with 'regressor1' as first element and 'regressor2' as second (if a list length 2 is parsed)")
+    }
+
   #~~~ Defaulting Parameters =========================================================================
 
   cat(paste0("*** Forecasting the target variable: ", list_params$target_variable, " ***\n"))
@@ -244,7 +266,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   if(is.null(list_params$holidays.prior.scale)){list_params$holidays.prior.scale = 10; cat("Defaulting holidays.prior.scale to 10 ... \n\n")}
 
   if(is.null(list_params$seasonality.prior.scale)){list_params$seasonality.prior.scale = 10; cat("Defaulting seasonality.prior.scale to 10 ... \n\n")}
-
 
   #cleaning the parameters to avoid duplication:
 
@@ -317,6 +338,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                         regressor2.modelling = regressor2.param,
                                         judgmental_forecasts.modelling = judgmental_forecasts,
                                         holidays_modelling = holidays,
+                                        final_predictions_modelling = final_predictions,
                                         debug_modelling = debug)
 
 
@@ -535,10 +557,14 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   #Retraining a final model with the best parameters on full data:
   #Currently the final forecasts are only produced for cases where there is no regressors picked in the last model. This is because there is not regressors values for the future:
-  if(accuracies$regressor1 == 'no_regressor' & accuracies$regressor1 == 'no_regressor'){
 
-    cat("\nRunning the final optimised model on all available data ...\n")
 
+  if((is.null(final_predictions) | is.integer(final_predictions) | is.numeric(final_predictions)) & (accuracies$regressor1 != "no_regressor" | accuracies$regressor2 != "no_regressor"  )){
+
+    cat("\nNot possible to run the final optimised model on all available data since the future values of the regressors were not made available \n")
+    models_output = list(forecasts_all = NULL)
+
+  }else{
 
     models_output = modelling_prophet_function(df_all_modelling = df_all,
                                                df_test_modelling = df_test,
@@ -553,12 +579,10 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                                regressor2.modelling = accuracies$regressor2,
                                                judgmental_forecasts.modelling = judgmental_forecasts,
                                                holidays_modelling = holidays,
+                                               final_predictions_modelling = final_predictions,
                                                debug_modelling = debug)
 
-  }else{
-    cat("\nNot possible to run the final optimised model on all available data since the future values of the regressors were not made available \n")
-    models_output = list(forecasts_all = NULL)
-  }
+   }
 
   final_results = list(
                        Final_Forecasts = models_output$forecasts_all,
@@ -574,7 +598,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   #Return all non-null elements:
 
   cat(paste0("\n\nThe ", nrow(grid), " models were trained and the accuracy (", main_accuracy_metric,") was estimated for the test set between ", min(df_test$ds), " to ", max(df_test$ds), ". It took ", round(difftime(time1 = Sys.time(), time2 = initial_time, units = "mins" )), " minutes to run.\n"))
-  cat(paste0("To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access 'Actuals_vs_Predictions (All or Best)'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'."))
+  cat(paste0("To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access for all models trained 'Actuals_vs_Predictions_All'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'. 'Final_Forecasts' will include a final forecast with the optimised model."))
 
   return(structure(.Data = final_results[!sapply(final_results, is.null)], class = "ProphetWrapper") )
 

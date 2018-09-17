@@ -17,22 +17,57 @@
 #' @param df_all_modelling All data
 #' @param debug_modelling to debug
 #' @param holidays_modelling holidays
+#' @param final_predictions_modelling length of final predictions
 #'
 #' @import magrittr
 #'
 #'
 
 
-modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_train_modelling, modelling_type, list_params_modelling, changepoint.prior.scale.modelling, holidays.prior.scale.modelling, regressor.prior.scale.modelling, seasonality.prior.scale.modelling, regressor1.modelling, regressor2.modelling, judgmental_forecasts.modelling, holidays_modelling, debug_modelling){
+modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_train_modelling, modelling_type, list_params_modelling, changepoint.prior.scale.modelling, holidays.prior.scale.modelling, regressor.prior.scale.modelling, seasonality.prior.scale.modelling, regressor1.modelling, regressor2.modelling, judgmental_forecasts.modelling, holidays_modelling, final_predictions_modelling, debug_modelling){
 
 
     if(debug_modelling){browser()}
 
     if(modelling_type == 'final'){
       df_modelling = df_all_modelling
+
+          #defaulting the value of final_predictions to the length of test set if NULL is parsed
+          if(is.null(final_predictions_modelling)){
+            cat(paste0("\nRunning the final optimised model on all available data. Forecast horizon set to ", nrow(df_test_modelling), " (test set length) ...\n"))
+            final_predictions_length = nrow(df_test_modelling)
+            final_predictions_df = NULL
+
+          }else if(is.integer(final_predictions_modelling) | is.numeric(final_predictions_modelling)){
+            cat(paste0("\nRunning the final optimised model on all available data. Forecast horizon set to ", final_predictions_modelling, " ...\n"))
+            final_predictions_length = final_predictions_modelling
+            final_predictions_df = NULL
+
+          }else if(regressor1.modelling == "no_regressor" & regressor2.modelling == "no_regressor"){
+            cat(paste0("\nRunning the final optimised model on all available data. Forecast horizon set to ", nrow(df_test_modelling), " (test set length) ...\n"))
+            final_predictions_length = nrow(df_test_modelling)
+            final_predictions_df = NULL
+
+          }else{
+            futureRegressors_list = FutureRegressors( final_forecasts_list_future_regressors = final_predictions_modelling,
+                                                     best_regressor1_future_regressors = regressor1.modelling,
+                                                     best_regressor2_future_regressors = regressor2.modelling,
+                                                     all_data_future_regressors = df_all_modelling,
+                                                     debug_future_regressors = debug_modelling)
+
+            final_predictions_length = futureRegressors_list$future_horizon
+            final_predictions_df = futureRegressors_list$future_regressors_df
+
+            cat(paste0("\nRunning the final optimised model on all available data. Forecast horizon set to ",final_predictions_length , " ...\n"))
+
+            }
+
+
     }else{
       df_modelling = df_train_modelling
+      final_predictions_length = nrow(df_test_modelling)
     }
+
 
     if(is.null(holidays_modelling)){
 
@@ -87,9 +122,25 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
         prophet::fit.prophet(model, df = df_modelling, algorithm = 'Newton')
       })
 
-    future_prophet_complete = prophet::make_future_dataframe(model, periods = nrow(df_test_modelling), freq = padr::get_interval(df_all_modelling$ds)) %>%
+
+
+    future_prophet_complete = prophet::make_future_dataframe(model, periods = final_predictions_length, freq = padr::get_interval(df_all_modelling$ds)) %>%
       dplyr::mutate(ds = as.Date(ds)) %>%
       dplyr::left_join(dplyr::select(df_all_modelling, -ds), by = c("ds" = "Date"))
+
+
+    tryCatch({
+      future_prophet_complete = future_prophet_complete %>%
+        dplyr::left_join(final_predictions_df, by = c("ds" = "Date")) %>%
+        select(ds, dplyr::contains(".y"))
+
+      colnames(future_prophet_complete) = gsub(x = colnames(future_prophet_complete), pattern = ".y", "")
+
+    },
+             error = function(e){
+               future_prophet_complete = future_prophet_complete
+               })
+
 
     forecast <- predict(model, future_prophet_complete) %>%
       dplyr::mutate(ds = as.Date(ds)) %>%

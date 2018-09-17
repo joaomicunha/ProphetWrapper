@@ -8,7 +8,8 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
   plotFrom = NULL, main_accuracy_metric = "MAPE",
   train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 4,
   method_impute = "exponential", parallel = FALSE, seed = 12345,
-  period_cv = NULL, initial_cv = NULL, horizon_cv = NULL, debug = FALSE)
+  period_cv = NULL, initial_cv = NULL, horizon_cv = NULL,
+  final_predictions = NULL, debug = FALSE)
 }
 \arguments{
 \item{df}{A data-frame with a numeric column, a date type column, a regressor and a column train (for train/test split). The 'train' column has to have 1 and 0 only where 1 refer to training set.}
@@ -54,6 +55,13 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
 \item{initial_cv}{Used if best_model_in == 'cv'. Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation function and/or check Details section below).}
 
 \item{horizon_cv}{Used if best_model_in == 'cv'. Integer size of the horizon (for more details see documentation of prophet::cross_validation function and/or check Details section below).}
+
+\item{final_predictions}{final_predictions is the argument that will control the length/horizon of the final forecasts (the forecast generated from the optimised model trained on all available data). The values of final_predictions argument can be:
+ \itemize{
+ \item{\strong{integer}}  {If final_predictions is set to an integer, the final forecast horizon will have length final_predictions. Please note that if the final forecast uses regressors, these have to be parsed here as a data.frame (see below).}
+ \item{\strong{data.frame}} {A data.frame with columns 'Date', 'regressor1' and 'regressor2' with the future values of the regressors. If regressors are not used then an integer value can be used.}
+ \item{\strong{NULL (default)}} {If set to NULL, final_predictions is set to the length of the test set (assumes the test set is representative of the future horizon.)}
+}}
 
 \item{debug}{TRUE for browsing the function. Defaults to FALSE.}
 }
