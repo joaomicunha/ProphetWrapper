@@ -4,7 +4,7 @@
 #' Prophet Wrapper
 #'
 #' This is a function that wraps up (\href{https://facebook.github.io/prophet/docs/installation.html}{Prophet}) package functionality, expanding the possibilities currently offered by the Facebook developed R package.
-#' The main rationale behind the package was to build a reproducible function to test several models simultaneously. The model doesn't perform Cross-Validation (yet!) but allows the user to define a train/test split and evaluate the models produced under different scenarios.
+#' The main rationale behind the package was to build a reproducible function to model and test several models simultaneously. The package currently offers grid.search functionality for parameter tuning, results/accuracy visualisations and cross-validation.
 #'
 #'
 #' @param df A data-frame with a numeric column, a date type column, a regressor and a column train (for train/test split). The 'train' column has to have 1 and 0 only where 1 refer to training set.
@@ -40,18 +40,22 @@
 #'  \itemize{
 #'  \item{\strong{integer}}  {If final_predictions is set to an integer, the final forecast horizon will have length final_predictions. Please note that if the final forecast uses regressors, these have to be parsed here as a data.frame (see below).}
 #'  \item{\strong{data.frame}} {A data.frame with columns 'Date', 'regressor1' and 'regressor2' with the future values of the regressors. If regressors are not used then an integer value can be used.}
+#'  \item{\strong{ProphetWrapper Object}} {The user can parse directly a ProphetWrapper object (output of Prophet_Wrapper function). This reveals to be useful when using 'stacked' modelling. The regressors used are the Final_Forecasts from the ProphetWrapper object parsed and the length/horizon of the final forecasts is the number of future rows in Final_Forecasts.}
 #'  \item{\strong{NULL (default)}} {If set to NULL, final_predictions is set to the length of the test set (assumes the test set is representative of the future horizon.)}
 #' }
 #' @param debug TRUE for browsing the function. Defaults to FALSE.
 #'
 #'
-#' @return This function returns a list with 3 elements:
+#' @return This function returns a list of class 'ProphetWrapper' with the following elements:
 #'  \itemize{
-#'  \item{\strong{Accuracy_Overview}}  {A data-frame with all the trained models and accuracy metrics divided by train, test and cross-validated results (if available) The metrics are: MAPE', 'MSE', 'MAE', 'RMSE', 'MPE'}
-#'  \item{\strong{Actuals_vs_Predictions_All}} {A data-frame with the actuals vs predictions and with upper and lower bound confidence intervals. This output also contains a column 'diff' with the Absolute Percentage Error for each prediction allowing the user to easily identify areas of miss-prediction.}
-#'  \item{\strong{Actuals_vs_Predictions_Best}} {A data-frame with the predictions of the best model (based on 'main_accuracy_metric' and 'best_model_in' parameters). Actuals, predictions, upper and lower bound predictions are included as well as a 'prediction_and_predictor' field wich contains actuals from the train set and predictions from the test set (useful when stacked models are used).}
-#'  \item{\strong{Best_Parameters}} {A data-frame with the best parameters selected by performance.}
-#'  \item{\strong{Plot_Actual_Predictions}}  {A ggplot with actuals vs predictions and a separator for train/test split for the best model (based on 'best_model_in' and 'main_accuracy_metric' parameters).}
+#' \item{\strong{Final_Forecasts:}} {A data-frame with final forecasts on unseen data produced by training the optimised model (based on 'main_accuracy_metric' and 'best_model_in' parameters) on the entire data. The user can use the 'final_predictions' parameter to control the horizon of the final forecasts (more detail on the function documentation). ProphetWrapper class object can be parsed directly to 'final_predictions' which reveals to be useful when using 'stacked' modelling. The regressors used are the Final_Forecasts from the ProphetWrapper object parsed and the length/horizon of the final forecasts is the number of future rows in Final_Forecasts. The forecast length (horizon) can also be set to be equal to the length of the test set (when 'final_predictions' is NULL) or to a specified integer.}
+#' \item{\strong{Accuracy_Overview:}} {A data-frame with the performance of all the models estimated with a flag for the best model (based on 'main_accuracy_metric' and 'best_model_in' parameters). The error metrics available are: MAPE, MSE, MAE, RMSE and MPE.}
+#' \item{\strong{Actuals_vs_Predictions_All:}} {A data-frame with point predictions vs actuals, upper and lower bound predictions as per Prophet and other details about the series and the models (for train and test set). There is a row per date and model trained pair (i.e. if n models are trained this data-frame returns n rows for each of the date points).}
+#' \item{\strong{Actual_vs_Predictions_Best:}} {A data-frame with the predictions of the best model (selected based on 'main_accuracy_metric' and 'best_model_in' parameters). Actuals, predictions, upper and lower bound predictions are included as well as a 'prediction_and_predictor' field wich contains actuals from the train set and predictions from the test set (useful when stacked models are used).}
+#' \item{\strong{Best_Parameters:}} {A data-frame with the best parameters used to estimate the best model (selected based on 'main_accuracy_metric' and 'best_model_in' parameters).}
+#' \item{\strong{CV_Overview:}} {A data-frame with an overview of the in-fold accuracy performance for the best model (selected based on 'main_accuracy_metric' and 'best_model_in' parameters). This output is only made available if best_model_in parameter is set to 'cv'.}
+#' \item{\strong{Plot_CV_Accuracy:}} {A ggplot graph illustrating the performance on cross-validation for different horizon (look-ahead) periods. This output is only made available if best_model_in parameter is set to 'cv'.}
+#' \item{\strong{Plot_Actual_Predictions:}} {A ggplot graph of Actuals vs Predictions. The 'plotFrom' parameter controls from when to plot from.}
 #' }
 #'
 #' @details Since this is a wrapper for Prophet, you can find extra parameters information on Prophet documentation \code{?prophet}.
@@ -82,7 +86,8 @@
 #'                     holidays = holidays,
 #'                     best_model_in = "train",
 #'                     main_accuracy_metric = "MAPE",
-#'                     train_set_imp_perc = 0.5)
+#'                     train_set_imp_perc = 0.5,
+#'                     final_predictions = list(forecasts_inbound_all, forecasts_offered_all)
 #'
 #'}
 #'

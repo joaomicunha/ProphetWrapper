@@ -77,7 +77,7 @@ xmas_days = data_frame(
 
 ### The output of Prophet_Wrapper is an R list with class 'ProphetWrapper' containing:
 
-- **Final_Forecasts:** A data-frame with final forecasts on unseen data produced by training the optimised model (based on 'main_accuracy_metric' and 'best_model_in' parameters) on the entire data. The forecast length (horizon) is set to be equal to the length of the test set. Notice that final forecasts are only produced for cases where the optimal model doesn't use regressors. This is because there is not regressors values for the future.
+- **Final_Forecasts:** A data-frame with final forecasts on unseen data produced by training the optimised model (based on 'main_accuracy_metric' and 'best_model_in' parameters) on the entire data. The user can use the 'final_predictions' parameter to control the horizon of the final forecasts (more detail on the function documentation). ProphetWrapper class object can be parsed directly to 'final_predictions' which reveals to be useful when using 'stacked' modelling. The regressors used are the Final_Forecasts from the ProphetWrapper object parsed and the length/horizon of the final forecasts is the number of future rows in Final_Forecasts. The forecast length (horizon) can also be set to be equal to the length of the test set (when 'final_predictions' is NULL) or to a specified integer.
 
 - **Accuracy_Overview:** A data-frame with the performance of all the models estimated with a flag for the best model (based on 'main_accuracy_metric' and 'best_model_in' parameters). The error metrics available are: MAPE, MSE, MAE, RMSE and MPE.
 

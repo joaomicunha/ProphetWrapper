@@ -20,5 +20,5 @@ FutureRegressors(final_forecasts_list_future_regressors,
 \item{debug_future_regressors}{Debug}
 }
 \description{
-This is an internal function which unique purpose is to prepare future regressors.
+This is an internal function which unique purpose is to prepare future regressors (not exported).
 }
