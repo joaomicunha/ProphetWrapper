@@ -96,7 +96,7 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                                       regressor.prior.scale = regressor.prior.scale_cv,
                                       holidays.prior.scale = holidays.prior.scale_cv) %>%
                         dplyr::ungroup() %>%
-                        dplyr::select(fold_number, everything())
+                        dplyr::select(fold_number, dplyr::everything())
 
 
 

@@ -63,8 +63,8 @@
 #' Three arguments can be selected for this section (horizon_cv, period_cv and initial_cv). horizon_cv controls for the length of each of the forecasts in the cross-validation process (defaults to the size of the testing set parsed to prophet_wrapper). The initial_cv controls for the length of the minimum data used for training on each fold (defaults to 3 * horizon_cv). period_cv controls for the time between cut-offs controlling if they overlap or not.
 #' As an example assuming daily data, if we have 1673 observations finishing on the 2018-07-31 and we select horizon_cv equal to 91, period equal to 89 and initial as 1673 - 270, we end up with 3 folds of 90 days each sequentially.
 #'
-#' @importFrom("stats", "predict")
-#' @importFrom("utils", "head")
+#' @importFrom stats predict
+#' @importFrom utils head
 #'
 #' @examples
 #' \dontrun{
@@ -535,7 +535,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     ggplot2::scale_x_date(name = "\nDate", breaks = scales::date_breaks("2 months")) +
     #ggthemes::scale_color_tableau(palette = 'tableau10medium') +
     ggplot2::ggtitle(label = paste0("Actuals vs Forecasts (", list_params$target_variable, ")"), subtitle = paste0("From: ", min(df_graph$Date), " To: ", max(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
-    theme(legend.position = "bottom")
+    ggplo2::theme(legend.position = "bottom")
 
 
   graph2 = invisible(gridExtra::tableGrob(accuracies_graph, rows = NULL))
