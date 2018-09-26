@@ -16,28 +16,51 @@ Below you can find a simple example of how to explore the functionality of Proph
 ```{r eval=FALSE}
 
 library(prophet)
+library(ProphetWrapper)
 
-parameters_model = list(changepoint.prior.scale =  c(0.001, 0.003, 0.005, 0.01, 0.03, 0.05, 0.08, 0.1, 0.15),
-                        holidays.prior.scale = c(1, 3, 6, 10, 13, 15, 25),
-                        regressor.prior.scale = c(0.05),
-                        weekly.seasonality = TRUE,
-                        yearly.seasonality = TRUE,
-                        daily.seasonality = TRUE,
-                        standardize_regressor = TRUE,
-                        log_transformation = TRUE,
-                        target_variable = "sessions",
-                        regressor1 = c("no_regressor"),
-                        regressor2 = c("no_regressor"))
+parameters_models = list( changepoint.prior.scale =  c(0.001, 0.01),
+                                       holidays.prior.scale = c(1, 25),
+                                       seasonality.prior.scale = c(10, 15),
+                                       regressor.prior.scale = c(0.05),
+                                       weekly.seasonality = TRUE,
+                                       yearly.seasonality = TRUE,
+                                       daily.seasonality = TRUE,
+                                       standardize_regressor = TRUE,
+                                       log_transformation = TRUE,
+                                       target_variable = "sessions",
+                                       regressor1 = c("no_regressor"),
+                                       regressor2 = c("no_regressor"))
 
-prophetWrapper_output = ProphetWrapper::Prophet_Wrapper(df = df_model,
-                                                        list_params = parameters_model,
-                                                        best_model_in = "cv",
-                                                        main_accuracy_metric = "MAPE",
-                                                        plotFrom = "2017-01-01",
-                                                        k_impute = 4, 
-                                                        method_impute = "exponential",
-                                                        seed = 11111,
-                                                        debug = FALSE)
+
+sessions_prophet_wrapper = ProphetWrapper::Prophet_Wrapper(  df = ProphetWrapper::sessions,
+                                                                 list_params = parameters_models,
+                                                                 best_model_in = "test",
+                                                                 main_accuracy_metric = "MAPE",
+                                                                 final_predictions = 20,
+                                                                 plotFrom = "2017-01-01",
+                                                                 seed = 9999,
+                                                                 debug = FALSE,
+                                                                 parallel = FALSE)
+
+
+#To explore Acutals vs Predictions 
+sessions_prophet_wrapper$Plot_Actual_Predictions
+
+#To explore the Final Forecasts (in this case 20 periods horizon):
+sessions_prophet_wrapper$Final_Forecasts
+
+#To explore the Accuracy of all the Models trained accross different error metrics:
+sessions_prophet_wrapper$Accuracy_Overview
+
+#To explore the predictions for all the models:
+sessions_prophet_wrapper$Actuals_vs_Predictions_All
+
+#The results of the best model predicitions (on test set):
+sessions_prophet_wrapper$Actual_vs_Predictions_Best
+
+#The best hyperparameters selected from all the models trained in terms of 'main_accuracy_metric':
+sessions_prophet_wrapper$Best_Parameters
+
 ```
 
 The sessions dataset is a time-series data-frame with the daily volumes of sessions for an imaginary website between 2013-01-01 and 2017-01-09.
