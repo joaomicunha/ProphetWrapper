@@ -35,6 +35,8 @@ FutureRegressors = function(final_forecasts_list_future_regressors, best_regress
     break()
   }
 
+
+  #If the input of final_predictions is length two:
   if(length(final_forecasts_list_future_regressors) == 2){
 
       if(class(final_forecasts_list_future_regressors[[1]]) == "ProphetWrapper" & class(final_forecasts_list_future_regressors[[2]]) == "ProphetWrapper"){
@@ -73,7 +75,7 @@ FutureRegressors = function(final_forecasts_list_future_regressors, best_regress
         stop("Input of FutureRegressors not in the right format")
       }
 
-
+  #If the input of final_predictions is list length 1:
   }else{
 
       if(class(final_forecasts_list_future_regressors[[1]]) == "ProphetWrapper"){

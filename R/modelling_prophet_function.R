@@ -58,7 +58,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
             final_predictions_length = futureRegressors_list$future_horizon
             final_predictions_df = futureRegressors_list$future_regressors_df
 
-            cat(paste0("\nRunning the final optimised model on all available data. Forecast horizon set to ",final_predictions_length , " ...\n"))
+            cat(paste0("\nRunning the final optimised model on all available data. Forecast horizon set to ",final_predictions_length , " (length of the future forecasts on the ProphetWrapper object parsed) ...\n"))
 
             }
 

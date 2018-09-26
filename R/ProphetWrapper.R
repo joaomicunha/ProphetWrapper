@@ -251,13 +251,26 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     stop("'final_predictions' once set to data.frame it has to contain a column Date (class Date).")
   }
 
-  if(sum(class(final_predictions) == "data.frame") >= 1 | class(final_predictions) == "ProphetWrapper"){
-    final_predictions = list(final_predictions)
+
+  if(class(final_predictions) == "ProphetWrapper"){
+    if(is.null(final_predictions$Final_Forecasts)){
+      stop("Not possible to use a 'ProphetWrapper' object WITHOUT Final_Forecasts on the 'final_predictions' argument. final_predicitons should only be populated with ProphetWrapper object if regressors are being tested.")
+    }
   }
 
   if(length(final_predictions) == 2 & is.null(names(final_predictions))){
     stop("'final_predictions' should be a named list with 'regressor1' as first element and 'regressor2' as second (if a list length 2 is parsed)")
+  }
+
+  if(class(final_predictions) == "ProphetWrapper"){
+    if(sum(unique(original$Date) %in% unique(final_predictions$Final_Forecasts$Date)) != length(unique(original$Date))){
+      stop("The 'ProphetWrapper' object parsed as final_predictions doesn't contain all the dates from the parsed data-frame meaning it can't be used to make final future forecasts.")
     }
+  }
+
+  if(sum(class(final_predictions) == "data.frame") >= 1 | class(final_predictions) == "ProphetWrapper"){
+    final_predictions = list(final_predictions)
+  }
 
   #~~~ Defaulting Parameters =========================================================================
 
@@ -535,7 +548,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     ggplot2::scale_x_date(name = "\nDate", breaks = scales::date_breaks("2 months")) +
     #ggthemes::scale_color_tableau(palette = 'tableau10medium') +
     ggplot2::ggtitle(label = paste0("Actuals vs Forecasts (", list_params$target_variable, ")"), subtitle = paste0("From: ", min(df_graph$Date), " To: ", max(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
-    ggplo2::theme(legend.position = "bottom")
+    ggplot2::theme(legend.position = "bottom")
 
 
   graph2 = invisible(gridExtra::tableGrob(accuracies_graph, rows = NULL))
@@ -566,7 +579,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
   if((is.null(final_predictions) | is.integer(final_predictions) | is.numeric(final_predictions)) & (accuracies$regressor1 != "no_regressor" | accuracies$regressor2 != "no_regressor"  )){
 
-    cat("\nNot possible to run the final optimised model on all available data since the future values of the regressors were not made available \n")
+    warning("\nNot possible to run the final optimised model on all available data since the future values of the regressors were not made available \n")
     models_output = list(forecasts_all = NULL)
 
   }else{
@@ -603,7 +616,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   #Return all non-null elements:
 
   cat(paste0("\n\nThe ", nrow(grid), " models were trained and the accuracy (", main_accuracy_metric,") was estimated for the test set between ", min(df_test$ds), " to ", max(df_test$ds), ". It took ", round(difftime(time1 = Sys.time(), time2 = initial_time, units = "mins" )), " minutes to run.\n"))
-  cat(paste0("To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access for all models trained 'Actuals_vs_Predictions_All'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'. 'Final_Forecasts' will include a final forecast with the optimised model."))
+  cat(paste0("To analyse the accuracy distributions use access 'Accuracy_Overview'. For a view of actuals vs forecasts, confidence intervals and point forecast error metrics access for all models trained 'Actuals_vs_Predictions_All'. For a plot of Actual vs Forecasts of the best model use 'Plot_Actual_Predictions'. 'Final_Forecasts' will include a final forecast with the optimised model.\n"))
 
   return(structure(.Data = final_results[!sapply(final_results, is.null)], class = "ProphetWrapper") )
 
