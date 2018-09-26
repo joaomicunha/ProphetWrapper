@@ -8,6 +8,7 @@ Description: ProphetWrapper package is a forecasting package wrapping Prophet al
 Imports:
     magrittr, 
     prophet, 
+    gtools,
     MLmetrics,
     dplyr, 
     ggplot2,

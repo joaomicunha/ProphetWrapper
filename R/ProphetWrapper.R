@@ -582,6 +582,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     warning("\nNot possible to run the final optimised model on all available data since the future values of the regressors were not made available \n")
     models_output = list(forecasts_all = NULL)
 
+  }else if(length(list_params$regressor1) >1 | length(list_params$regressor2) >1){
+
+    warning("\nNot possible to run the final optimised model on all available data since the optimal regressors were estimated within ProphetWrapper and therefore can't be parsed in advance \n")
+    models_output = list(forecasts_all = NULL)
+
   }else{
 
     models_output = modelling_prophet_function(df_all_modelling = df_all,

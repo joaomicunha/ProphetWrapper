@@ -10,8 +10,10 @@ For more background on Prophet please consider the resources below. The document
 
 ## How to use it
 
-Below you can find a simple example of how to explore the functionality of ProphetWrapper. The package contains only one exported function ProphetWrapper::Prophet_Wrapper().
+Below you can find a simple example of how to explore the functionality of ProphetWrapper. The package contains two exported functions:
 
+- ProphetWrapper::Prophet_Wrapper()
+- ProphetWrapper::Accuracies_Agg()
 
 ```{r eval=FALSE}
 
