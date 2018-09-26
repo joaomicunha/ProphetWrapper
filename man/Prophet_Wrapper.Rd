@@ -6,7 +6,7 @@
 \usage{
 Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
   plotFrom = NULL, main_accuracy_metric = "MAPE",
-  train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 4,
+  train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 2,
   method_impute = "exponential", parallel = FALSE, seed = 12345,
   period_cv = NULL, initial_cv = NULL, horizon_cv = NULL,
   final_predictions = NULL, debug = FALSE)
@@ -42,7 +42,7 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
 
 \item{judgmental_forecasts}{A names vector with the date as name and the value of the judmental forecast. For example if we know that allways on the xmas day the value we are trying to predict is zero we can parse judgmental_forecasts = c('2016-12-25' = 1,  '2017-12-25' = 1, '2018-12-25' = 1). If the judgemental forecast is zero don't parse the value zero and parse 1 instead. This will facilitate with log transformations.}
 
-\item{k_impute}{Integer width of the moving average window. Expands to both sides of the center element e.g. k=2 means 4 observations (2 left, 2 right) are taken into account. If all observations in the current window are NA, the window size is automatically increased until there are at least 2 non-NA values present (from ImputeTS package). Defaults to 4.}
+\item{k_impute}{Integer width of the moving average window. Expands to both sides of the center element e.g. k=2 means 4 observations (2 left, 2 right) are taken into account. If all observations in the current window are NA, the window size is automatically increased until there are at least 2 non-NA values present (from ImputeTS package). Defaults to 2.}
 
 \item{method_impute}{Weighting method to be used for imputing missing values or padded time-series. Accepts the following input: "simple" - Simple Moving Average (SMA), "linear" - Linear Weighted Moving Average (LWMA) or "exponential" - Exponential Weighted Moving Average (EWMA). Defaults to 'exponential'.}
 
