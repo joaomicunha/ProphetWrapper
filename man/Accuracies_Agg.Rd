@@ -4,11 +4,11 @@
 \alias{Accuracies_Agg}
 \title{Accuracies_Agg}
 \usage{
-Accuracies_Agg(listProphet_Results, interval_agg = "day",
+Accuracies_Agg(Prophet_Results, interval_agg = "day",
   results_type = "test_set")
 }
 \arguments{
-\item{listProphet_Results}{A list with outputs from ProphetWrapper function}
+\item{Prophet_Results}{A list with outputs from ProphetWrapper function or a single ProphetWrapper object.}
 
 \item{interval_agg}{A character value defining the level to be used to aggregate the series to compute the error metrics. It should be either the same interval of the series or higher.}
 
@@ -17,8 +17,8 @@ Accuracies_Agg(listProphet_Results, interval_agg = "day",
 \value{
 This function returns a list with 2 elements:
  \itemize{
- \item{\strong{Accuracies}}  {A data-frame with the accuracies of the best model for each element parsed in listProphet_Results argument.}
- \item{\strong{Graphs_Accuracy_Agg}} {A list with plots of actuals vs forecasts of the best model for each element parsed in listProphet_Results argument.}
+ \item{\strong{Accuracies}}  {A data-frame with the accuracies of the best model for each element parsed in Prophet_Results argument.}
+ \item{\strong{Graphs_Accuracy_Agg}} {A list with plots of actuals vs forecasts of the best model for each element parsed in Prophet_Results argument.}
 }
 }
 \description{

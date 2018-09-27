@@ -3,21 +3,21 @@
 #'
 #' Function used to explore the accuracy (MAPE, MSE, MAE, RMSE, MPE) for several models simultaneously, choosing the aggregation level
 #'
-#' @param listProphet_Results A list with outputs from ProphetWrapper function
+#' @param Prophet_Results A list with outputs from ProphetWrapper function or a single ProphetWrapper object.
 #' @param interval_agg A character value defining the level to be used to aggregate the series to compute the error metrics. It should be either the same interval of the series or higher.
 #' @param results_type A character value defining how to calculate the accuracy metrics (test_set is default).
 #'
 #' @return This function returns a list with 2 elements:
 #'  \itemize{
-#'  \item{\strong{Accuracies}}  {A data-frame with the accuracies of the best model for each element parsed in listProphet_Results argument.}
-#'  \item{\strong{Graphs_Accuracy_Agg}} {A list with plots of actuals vs forecasts of the best model for each element parsed in listProphet_Results argument.}
+#'  \item{\strong{Accuracies}}  {A data-frame with the accuracies of the best model for each element parsed in Prophet_Results argument.}
+#'  \item{\strong{Graphs_Accuracy_Agg}} {A list with plots of actuals vs forecasts of the best model for each element parsed in Prophet_Results argument.}
 #' }
 #'
 #' @import magrittr
 #'
 
 
-Accuracies_Agg = function(listProphet_Results, interval_agg = "day", results_type = "test_set"){
+Accuracies_Agg = function(Prophet_Results, interval_agg = "day", results_type = "test_set"){
 
   ######## Error Handling:
   if(! interval_agg %in% c("sec", "min", "hour", "day", "DSTday", "week", "month", "quarter", "year") | length(interval_agg) != 1){
@@ -28,14 +28,14 @@ Accuracies_Agg = function(listProphet_Results, interval_agg = "day", results_typ
     stop("results_type has to be 'test_set' (test set error), 'train_set' (train set error) or 'all' (both)")
   }
 
-  if(class(listProphet_Results) == "list"){
+  if(class(Prophet_Results) == "list"){
 
-    if(sum(sapply(listProphet_Results, class) == "ProphetWrapper") != length(listProphet_Results)){
-      stop("listProphet_Results has to be a list consisting of objects with 'ProphetWrapper' class (output of ProphetWrapper::Prophet_Wrapper() function) or a single ProphetWrapper object.")
+    if(sum(sapply(Prophet_Results, class) == "ProphetWrapper") != length(Prophet_Results)){
+      stop("Prophet_Results has to be a list consisting of objects with 'ProphetWrapper' class (output of ProphetWrapper::Prophet_Wrapper() function) or a single ProphetWrapper object.")
     }
 
-  }else if(class(listProphet_Results) != "ProphetWrapper"){
-    stop("listProphet_Results has to be a list consisting of objects with 'ProphetWrapper' class (output of ProphetWrapper::Prophet_Wrapper() function) or a single ProphetWrapper object.")
+  }else if(class(Prophet_Results) != "ProphetWrapper"){
+    stop("Prophet_Results has to be a list consisting of objects with 'ProphetWrapper' class (output of ProphetWrapper::Prophet_Wrapper() function) or a single ProphetWrapper object.")
   }
 
 
@@ -49,8 +49,14 @@ Accuracies_Agg = function(listProphet_Results, interval_agg = "day", results_typ
     filter_exp = "dplyr::filter(train == 1 | train == 0)"
   }
 
+  ######## Define Prophet_Results as a list:
+
+  if(class(Prophet_Results) != "list"){
+    Prophet_Results = list(Prophet_Results)
+  }
+
   ######## Loop over all the ProphetWrapper results parsed:
-  final_list = lapply(listProphet_Results, function(x){
+  final_list = lapply(Prophet_Results, function(x){
 
     #If the interval required is the same as the current interval dont bother aggregating:
       if(padr::get_interval(x$Actual_vs_Predictions_Best$Date) == interval_agg){
