@@ -611,7 +611,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                        Final_Forecasts = models_output$forecasts_all,
                        Accuracy_Overview = final_accuracy,
                        Actuals_vs_Predictions_All = final_predictions_actuals,
-                       Actual_vs_Predictions_Best = df_best_model,
+                       Actuals_vs_Predictions_Best = df_best_model,
                        Best_Parameters = accuracies,
                        CV_Overview = if(best_model_in == 'cv'){final_overview_cv}else{NULL},
                        Plot_CV_Accuracy =  if(best_model_in == 'cv'){final_graph_cv}else{NULL},
