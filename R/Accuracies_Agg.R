@@ -28,12 +28,14 @@ Accuracies_Agg = function(listProphet_Results, interval_agg = "day", results_typ
     stop("results_type has to be 'test_set' (test set error), 'train_set' (train set error) or 'all' (both)")
   }
 
-  if(class(listProphet_Results) != "list"){
-    stop("listProphet_Results has to be a list object")
-  }
+  if(class(listProphet_Results) == "list"){
 
-  if(sum(sapply(listProphet_Results, class) == "ProphetWrapper") != length(listProphet_Results)){
-    stop("listProphet_Results has to be a list consisting of objects with 'ProphetWrapper' class (output of ProphetWrapper::Prophet_Wrapper() function)")
+    if(sum(sapply(listProphet_Results, class) == "ProphetWrapper") != length(listProphet_Results)){
+      stop("listProphet_Results has to be a list consisting of objects with 'ProphetWrapper' class (output of ProphetWrapper::Prophet_Wrapper() function) or a single ProphetWrapper object.")
+    }
+
+  }else if(class(listProphet_Results) != "ProphetWrapper"){
+    stop("listProphet_Results has to be a list consisting of objects with 'ProphetWrapper' class (output of ProphetWrapper::Prophet_Wrapper() function) or a single ProphetWrapper object.")
   }
 
 
@@ -81,11 +83,11 @@ Accuracies_Agg = function(listProphet_Results, interval_agg = "day", results_typ
                        seasonality.prior.scale = x$Best_Parameters$seasonality.prior.scale,
                        regressor.prior.scale = x$Best_Parameters$regressor.prior.scale,
                        holidays.prior.scale = x$Best_Parameters$holidays.prior.scale,
-                       MAPE = MLmetrics::MAPE(y_pred = sum(df$yhat), y_true = sum(df$actuals)),
-                       MSE =  MLmetrics::MSE(y_pred = sum(df$yhat), y_true = sum(df$actuals)),
-                       MAE =  MLmetrics::MAE(y_pred = sum(df$yhat), y_true = sum(df$actuals)),
-                       RMSE = MLmetrics::RMSE(y_pred = sum(df$yhat), y_true = sum(df$actuals)),
-                       MPE = mean((sum(df$actuals) - sum(df$yhat))/sum(df$actuals)),
+                       MAPE = MLmetrics::MAPE(y_pred = df$yhat, y_true = df$actuals),
+                       MSE =  MLmetrics::MSE(y_pred = df$yhat, y_true = df$actuals),
+                       MAE =  MLmetrics::MAE(y_pred = df$yhat, y_true = df$actuals),
+                       RMSE = MLmetrics::RMSE(y_pred = df$yhat, y_true = df$actuals),
+                       MPE = mean((df$actuals - df$yhat)/df$actuals),
                        stringsAsFactors = FALSE)
 
     #Gather the data for the final graph:
