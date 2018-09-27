@@ -20,7 +20,7 @@
 #'  \item{\strong{daily.seasonality}}  {Fit daily seasonality. Can be 'auto', TRUE, FALSE, or a number of Fourier terms to generate.}
 #'  \item{\strong{regressor1}}  {The name of the first external regressor (or regressors) to include in the model. It has to exist on df as a column. If a vector is parsed, 1 regressor at a time is tested (as a model parameter essentially). If "no_regressor" is parsed, a univariate time-series model is estimated. "no_regressor" can be parsed as an element of the vector as well. }
 #'  \item{\strong{regressor2}}  {The name of the second external regressor (or regressors) to include in the model. It has to exist on df as a column. If a vector is parsed, 1 regressor at a time is tested (in combination with regressor1 if parsed). If "no_regressor" is parsed, a univariate time-series model is estimated. "no_regressor" can be parsed as an element of the vector as well. }
-#'  \item{\strong{standardize_regressor}}  {Bool, specify whether this regressor will be standardized prior to fitting. Can be 'auto' (standardize if not binary), True, or False.}
+#'  \item{\strong{standardize_regressor}}  {Specify whether this regressor will be standardized prior to fitting. Can be 'auto' (standardize if not binary), True, or False.}
 #'  \item{\strong{log_transformation}}  {Bool, specify whether the Target Variable will be log transformed pre-fitting the models or not.}
 #' }
 #' @param best_model_in A character value either: 'train', 'test', 'mix_train_test' or 'cv'. Defaults to 'test'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements and wants to understand the general performance of the model cross-validated over a set of periods ('cv').
@@ -207,8 +207,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     stop("The 'list_params$daily.seasonality' argument has to be a bolean (TRUE or FALSE) or a number representing the Fourier terms to generate.")
   }
 
-  if(list_params$standardize_regressor != FALSE & list_params$standardize_regressor != TRUE){
-    stop("The 'list_params$standardize_regressor' argument has to be a bolean (TRUE or FALSE).")
+  if(list_params$standardize_regressor != FALSE & list_params$standardize_regressor != TRUE & list_params$standardize_regressor != "auto"){
+    stop("The 'list_params$standardize_regressor' argument has to be a bolean (TRUE or FALSE) or 'auto'.")
   }
 
   if(list_params$log_transformation != FALSE & list_params$log_transformation != TRUE){
