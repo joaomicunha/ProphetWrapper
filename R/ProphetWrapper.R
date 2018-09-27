@@ -121,8 +121,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   }
 
   if(ncol(df) < 2){
-    stop('The df object has to include at least 3 columns (a target_var and a date variable).')
+    stop('The df object has to include at least 2 columns (a target_var and a date variable).')
   }
+
+  tryCatch({exists("holidays")}, error = function(e){stop(paste0("The 'holidays' argument parsed doesn't exist in memory."))})
+
 
   if(sum(sapply(df, is.numeric)) == 0){
     stop("No numeric/integer type column was identified in 'df'. Please include a numeric/integer and a date column to continue.")
