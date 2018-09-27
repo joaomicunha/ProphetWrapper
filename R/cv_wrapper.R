@@ -88,7 +88,7 @@ cv_wrapper = function(df, period.param, horizon.param, model.param, initial.para
                                          MAE = MLmetrics::MAE(y_pred = yhat, y_true = y),
                                          RMSE = MLmetrics::RMSE(y_pred = yhat, y_true = y),
                                          MPE = mean((y - yhat)/y)) %>%
-                        dplyr::mutate(fold_number = row_number(),
+                        dplyr::mutate(fold_number = dplyr::row_number(),
                                       regressor1 = regressor1_cv,
                                       regressor2 = regressor2_cv,
                                       changepoint.prior.scale = changepoint.prior.scale_cv,
