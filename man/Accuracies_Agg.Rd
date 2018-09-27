@@ -4,15 +4,17 @@
 \alias{Accuracies_Agg}
 \title{Accuracies_Agg}
 \usage{
-Accuracies_Agg(Prophet_Results, interval_agg = "day",
-  results_type = "test_set")
+Accuracies_Agg(Prophet_Results, interval_agg = NULL,
+  results_type = "test_set", plotFrom = NULL)
 }
 \arguments{
 \item{Prophet_Results}{A list with outputs from ProphetWrapper function or a single ProphetWrapper object.}
 
-\item{interval_agg}{A character value defining the level to be used to aggregate the series to compute the error metrics. It should be either the same interval of the series or higher.}
+\item{interval_agg}{A character value defining the level to be used to aggregate the series to compute the error metrics. It should be either the same interval of the series or higher. It defaults to the current interval of the data.}
 
 \item{results_type}{A character value defining how to calculate the accuracy metrics (test_set is default).}
+
+\item{plotFrom}{A character string represents a date from when to plot the graph.}
 }
 \value{
 This function returns a list with 2 elements:

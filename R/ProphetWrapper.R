@@ -320,7 +320,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   df_test = df_all %>%
     dplyr::filter(train == 0)
 
-  #test set:
+  #train set:
   df_train = df_all %>%
     dplyr::filter(train == 1)
 
@@ -439,6 +439,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
     return(final_list)
 
   }
+
+  #~~~ Running the mapply operation over the grid (parallel or not):
 
   if(!parallel){
 

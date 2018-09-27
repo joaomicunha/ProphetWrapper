@@ -4,8 +4,9 @@
 #' Function used to explore the accuracy (MAPE, MSE, MAE, RMSE, MPE) for several models simultaneously, choosing the aggregation level
 #'
 #' @param Prophet_Results A list with outputs from ProphetWrapper function or a single ProphetWrapper object.
-#' @param interval_agg A character value defining the level to be used to aggregate the series to compute the error metrics. It should be either the same interval of the series or higher.
+#' @param interval_agg A character value defining the level to be used to aggregate the series to compute the error metrics. It should be either the same interval of the series or higher. It defaults to the current interval of the data.
 #' @param results_type A character value defining how to calculate the accuracy metrics (test_set is default).
+#' @param plotFrom A character string represents a date from when to plot the graph.
 #'
 #' @return This function returns a list with 2 elements:
 #'  \itemize{
@@ -17,14 +18,17 @@
 #'
 
 
-Accuracies_Agg = function(Prophet_Results, interval_agg = "day", results_type = "test_set"){
+Accuracies_Agg = function(Prophet_Results, interval_agg = NULL, results_type = "test_set", plotFrom = NULL){
 
   ######## Error Handling:
-  if(! interval_agg %in% c("sec", "min", "hour", "day", "DSTday", "week", "month", "quarter", "year") | length(interval_agg) != 1){
-    stop("Interval_agg should be a single value: sec, min, hour, day, DSTday, week, month, quarter, year")
+
+  if(!is.null(interval_agg)){
+    if(! interval_agg %in% c("sec", "min", "hour", "day", "DSTday", "week", "month", "quarter", "year")){
+      stop("Interval_agg should be a single value: sec, min, hour, day, DSTday, week, month, quarter, year")
+      }
   }
 
-  if(! results_type %in% c("test_set", "train_set", "all") | length(interval_agg) != 1){
+  if(! results_type %in% c("test_set", "train_set", "all") | length(results_type) != 1){
     stop("results_type has to be 'test_set' (test set error), 'train_set' (train set error) or 'all' (both)")
   }
 
@@ -37,7 +41,6 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = "day", results_type = 
   }else if(class(Prophet_Results) != "ProphetWrapper"){
     stop("Prophet_Results has to be a list consisting of objects with 'ProphetWrapper' class (output of ProphetWrapper::Prophet_Wrapper() function) or a single ProphetWrapper object.")
   }
-
 
   ######## Define what kind of accuracy analysis the user requires:
 
@@ -58,6 +61,13 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = "day", results_type = 
   ######## Loop over all the ProphetWrapper results parsed:
   final_list = lapply(Prophet_Results, function(x){
 
+    #Default the interval_agg parameter:
+    if(is.null(interval_agg)){
+      interval_agg = padr::get_interval(x$Actual_vs_Predictions_Best$Date)
+      warning(paste0("\nNo 'interval_agg' parameter was parsed so the current time interval of the data was used as default (", padr::get_interval(x$Actual_vs_Predictions_Best$Date), ")\n"))
+    }
+
+
     #If the interval required is the same as the current interval dont bother aggregating:
       if(padr::get_interval(x$Actual_vs_Predictions_Best$Date) == interval_agg){
 
@@ -72,7 +82,7 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = "day", results_type = 
               " %>%
               dplyr::rename('NewDate' = !!names(.[length(.)])) %>%
               dplyr::group_by(NewDate) %>%
-              dplyr::summarise_all(funs(sum(.))) %>%
+              dplyr::summarise_all(dplyr::funs(sum(.))) %>%
               ungroup()")
       }
 
@@ -96,6 +106,7 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = "day", results_type = 
                        MPE = mean((df$actuals - df$yhat)/df$actuals),
                        stringsAsFactors = FALSE)
 
+
     #Gather the data for the final graph:
 
     if(padr::get_interval(x$Actual_vs_Predictions_Best$Date) == interval_agg){
@@ -109,12 +120,18 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = "day", results_type = 
                       dplyr::select(-Date) %>%
                       dplyr::rename('NewDate' = !!names(.[length(.)])) %>%
                       dplyr::group_by(NewDate) %>%
-                      dplyr::summarise_all(funs(sum(.))) %>%
+                      dplyr::summarise_all(dplyr::funs(sum(.))) %>%
                       dplyr::ungroup() %>%
                       tidyr::gather(`Actuals vs Forecast`, Volumes, actuals:yhat)")
     }
 
     eval(parse(text = exp_graph))
+
+    if(!is.null(plotFrom)){
+      if(as.Date(plotFrom) <= max(df_graph$NewDate) | as.Date(plotFrom) >= min(df_graph$NewDate)){
+        df_graph = df_graph %>% dplyr::filter(NewDate >= as.Date(plotFrom))
+      }
+    }
 
 
     ######### Graph:
@@ -138,7 +155,7 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = "day", results_type = 
   accuracies_final = final_list[names(final_list) == "Accuracy_individual"] %>% dplyr::bind_rows()
 
   list(Accuracies = accuracies_final,
-         Graphs_Accuracy_Agg = final_list[names(final_list) == "Graph_Agg"] %>% set_names(accuracies_final$Model))
+         Graphs_Accuracy_Agg = final_list[names(final_list) == "Graph_Agg"] %>% purrr::set_names(accuracies_final$Model))
 
 }
 
