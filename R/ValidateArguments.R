@@ -90,6 +90,8 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
 
   if(!is.null(list_params$regressor1)){
 
+    if(class(list_params$regressor1) == "list"){stop("list_params$regressor1 has to be a character vector")}
+
     length_reg1 = length(list_params$regressor1)
 
     for(i in 1:length_reg1){
@@ -106,6 +108,8 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
 
 
   if(!is.null(list_params$regressor2)){
+
+    if(class(list_params$regressor2) == "list"){stop("list_params$regressor2 has to be a character vector")}
 
     length_reg2 = length(list_params$regressor2)
 
