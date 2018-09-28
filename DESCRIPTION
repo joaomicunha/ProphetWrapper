@@ -9,6 +9,7 @@ Imports:
     magrittr, 
     prophet, 
     gtools,
+    ggplotify,
     MLmetrics,
     dplyr, 
     ggplot2,

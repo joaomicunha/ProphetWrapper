@@ -84,7 +84,7 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = NULL, results_type = "
               dplyr::rename('NewDate' = !!names(.[length(.)])) %>%
               dplyr::group_by(NewDate) %>%
               dplyr::summarise_all(dplyr::funs(sum(.))) %>%
-              ungroup()")
+              dplyr::ungroup()")
       }
 
     #Create the df:

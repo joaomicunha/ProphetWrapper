@@ -402,26 +402,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                    dplyr::mutate(prediction_and_predictor = ifelse(train == 1, actuals, yhat)) %>%
                    dplyr::select(Date, actuals, yhat, yhat_lower, yhat_upper, prediction_and_predictor, train)
 
-  #Generate a ggplot graph from the best model:
-  df_graph = df_best_model %>%
-    dplyr::filter(as.Date(Date) >= as.Date(plotFrom)) %>%
-    tidyr::gather(`Actuals vs Forecast`, Volumes, actuals:yhat)
-
-  graph1 = ggplot2::ggplot(data = df_graph, ggplot2::aes(x = as.Date(Date), y = Volumes, color = `Actuals vs Forecast`, linetype = `Actuals vs Forecast`)) +
-    ggplot2::geom_line() +
-    ggplot2::geom_vline(ggplot2::aes(xintercept = as.numeric(max(df_train$ds))), linetype = 4, colour = "#40dfad", alpha = 0.7) +
-    ggthemes::theme_tufte() +
-    ggplot2::scale_y_continuous("\nActuals/Forecasts\n", labels = scales::comma_format()) +
-    ggplot2::scale_x_date(name = "\nDate", breaks = scales::date_breaks("2 months")) +
-    #ggthemes::scale_color_tableau(palette = 'tableau10medium') +
-    ggplot2::ggtitle(label = paste0("Actuals vs Forecasts (", list_params$target_variable, ")"), subtitle = paste0("From: ", min(df_graph$Date), " To: ", max(df_graph$Date), " (test set from ", max(df_train$ds), " onwards)")) +
-    ggplot2::theme(legend.position = "bottom")
-
-
-  graph2 = invisible(gridExtra::tableGrob(accuracies_graph, rows = NULL))
-  graph_final = invisible(gridExtra::arrangeGrob(graph2, graph1, nrow = 2, heights = c(0.3, 2)))
-
-
 
   #~~ FINAL OUTPUT: In this section we prepare the final outputs to be exported on the final list object:
 
@@ -452,7 +432,10 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   }else if(length(list_params$regressor1) >1 | length(list_params$regressor2) >1){
 
     warning("\nNot possible to run the final optimised model on all available data since the optimal regressors were estimated within ProphetWrapper and therefore can't be parsed in advance \n")
-    models_output = list(forecasts_all = NULL)
+    models_output = list(forecasts_all = NULL,
+                         plot_components = NULL,
+                         plot_changepoints = NULL,
+                         model = NULL)
 
   }else{
 
@@ -472,7 +455,38 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                                final_predictions_modelling = final_predictions,
                                                debug_modelling = debug)
 
+  }
+
+
+  #~~~~~ Generate visualisations/Graphs. Collect graphs and visualisations from several functions and store them in a list:
+
+ plots_generate_viz =  GenerateViz( df_best_model_viz = df_best_model,
+                                    Final_Forecasts_viz = models_output$forecasts_all,
+                                    list_params_viz = list_params,
+                                    plotFrom_viz = plotFrom,
+                                    debug_viz = debug)
+
+  #Plot Components has to be rendered in a different way because returns a list with graphical elements:
+  plot_components_expr = c()
+
+  for(i in 1:length(forecasts_inbound_all$Plots$Plot_Final_Model_Components)){
+
+
+     plot_components_expr[i] = paste0("models_output$plot_components[[", i, "]]")
+
    }
+
+
+  eval(parse(text = paste0("final_grid_components = gridExtra::arrangeGrob(", paste(expr, collapse = ", "), ", ncol = 1)")))
+
+  final_plot_components = ggplotify::as.ggplot(final_grid_components)
+
+ #All Graphs:
+ plots_generate_viz[["Plot_Final_Model_Components"]] = final_plot_components
+ plots_generate_viz[["Plot_Final_Model_Changepoints"]] = models_output$plot_changepoints
+ plots_generate_viz[["Plot_CV_Accuracy"]] = if(best_model_in == 'cv'){final_graph_cv}else{NULL}
+
+  #~~~~~ Define the final list to export:
 
   final_results = list(
                        Final_Forecasts = models_output$forecasts_all,
@@ -481,8 +495,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                        Actuals_vs_Predictions_Best = df_best_model,
                        Best_Parameters = accuracies,
                        CV_Overview = if(best_model_in == 'cv'){final_overview_cv}else{NULL},
-                       Plot_CV_Accuracy =  if(best_model_in == 'cv'){final_graph_cv}else{NULL},
-                       Plot_Actual_Predictions = graph1
+                       Final_Prophet_Model = models_output$model,
+                       Plots = plots_generate_viz[!sapply(plots_generate_viz, is.null)]
                        )
 
   #Return all non-null elements:

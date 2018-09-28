@@ -142,7 +142,9 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                })
 
 
-    forecast <- predict(model, future_prophet_complete) %>%
+    forecast_pred <- predict(model, future_prophet_complete)
+
+    forecast = forecast_pred %>%
       dplyr::mutate(ds = as.Date(ds)) %>%
       dplyr::left_join(dplyr::select(df_all_modelling, ds, target_var), by = "ds") %>%
       dplyr::mutate(yhat = ifelse(rep(list_params_modelling$log_transformation, nrow(.)), exp(yhat), yhat),
@@ -225,6 +227,32 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                     Holiday,
                     train)
 
+    ### IF modelling_type == 'final' we also want to export the final model and the final prophet graphs:
+
+    if(modelling_type == 'final'){
+
+      plot_components = prophet::prophet_plot_components(m = model,
+                                                         fcst = forecast_pred,
+                                                         uncertainty = TRUE,
+                                                         render_plot = FALSE )
+
+      plot_changepoints = plot(model, forecast_pred) + prophet::add_changepoints_to_plot(model)
+
+
+      return(
+        list(forecasts_all = forecast_tmp,
+             train_test_actuals_preds = list(y_pred_test = y_pred_test,
+                                                  y_true_test = y_true_test,
+                                                  y_pred_train = y_pred_train,
+                                                  y_true_train = y_true_train),
+             model = model,
+             plot_components = plot_components,
+             plot_changepoints = plot_changepoints)
+
+        )
+
+      }
+
     return(
 
       list(forecasts_all = forecast_tmp,
@@ -232,8 +260,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                                            y_true_test = y_true_test,
                                            y_pred_train = y_pred_train,
                                            y_true_train = y_true_train),
-           model = model
-           )
+           model = model)
 
       )
 
