@@ -127,13 +127,28 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   cat(paste0("*** Forecasting the target variable: ", list_params$target_variable, " ***\n"))
   cat(paste0("* Test Period from ", min(original$Date[original$train == 0]), " to ",  max(original$Date[original$train == 0]), " *\n\n"))
 
-  if(is.null(list_params$changepoint.prior.scale)){list_params$changepoint.prior.scale = 0.05; cat("Defaulting changepoint.prior.scale to 0.05 ...\n\n")}
+  if(is.null(list_params$changepoint.prior.scale)){list_params$changepoint.prior.scale = 0.05; cat("Defaulting changepoint.prior.scale to 0.05 ...\n")}
 
-  if(is.null(list_params$regressor.prior.scale)){list_params$regressor.prior.scale = 0.05; cat("Defaulting regressor.prior.scale to 0.05 ... \n\n")}
+  if(is.null(list_params$regressor.prior.scale)){list_params$regressor.prior.scale = 0.05; cat("Defaulting regressor.prior.scale to 0.05 ... \n")}
 
-  if(is.null(list_params$holidays.prior.scale)){list_params$holidays.prior.scale = 10; cat("Defaulting holidays.prior.scale to 10 ... \n\n")}
+  if(is.null(list_params$holidays.prior.scale)){list_params$holidays.prior.scale = 10; cat("Defaulting holidays.prior.scale to 10 ... \n")}
 
-  if(is.null(list_params$seasonality.prior.scale)){list_params$seasonality.prior.scale = 10; cat("Defaulting seasonality.prior.scale to 10 ... \n\n")}
+  if(is.null(list_params$seasonality.prior.scale)){list_params$seasonality.prior.scale = 10; cat("Defaulting seasonality.prior.scale to 10 ... \n")}
+
+  if(is.null(list_params$weekly.seasonality)){list_params$weekly.seasonality = 'auto'; cat("Defaulting weekly.seasonality to 'auto' ... \n")}
+
+  if(is.null(list_params$yearly.seasonality)){list_params$yearly.seasonality = 'auto'; cat("Defaulting yearly.seasonality to 'auto' ... \n")}
+
+  if(is.null(list_params$daily.seasonality)){list_params$daily.seasonality = 'auto'; cat("Defaulting daily.seasonality to 'auto' ... \n")}
+
+  if(is.null(list_params$log_transformation)){list_params$log_transformation = FALSE; cat("Defaulting log_transformation to FALSE ... \n")}
+
+  if(is.null(list_params$standardize_regressor)){list_params$standardize_regressor = FALSE; cat("Defaulting standardize_regressor to FALSE ... \n")}
+
+  if(is.null(list_params$regressor1)){list_params$regressor1 = "no_regressor"}
+
+  if(is.null(list_params$regressor2)){list_params$regressor2 = "no_regressor"}
+
 
   #cleaning the parameters to avoid duplication:
 

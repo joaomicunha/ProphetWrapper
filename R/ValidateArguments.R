@@ -56,6 +56,10 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
     stop("The 'train' column has to include 1 or 0 values.")
   }
 
+  if(is.null(list_params$target_var)){
+    stop("Please specify the 'target_var' argument.")
+  }
+
   #~~~ Clean the main data-frame (df) =================================================================
 
   vars = c(target_var = list_params$target_variable)
@@ -84,52 +88,55 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
     stop("The 'main_accuracy_metric' argument has to be either MAPE, MSE, MAE, RMSE or MPE (it defaults to MAPE).")
   }
 
-  if(sum(names(list_params) %in% c("weekly.seasonality", "yearly.seasonality", "standardize_regressor", "log_transformation", "target_variable", "regressor1", "regressor2", "daily.seasonality" )) != 8){
-    stop(paste0("The list_params argument has to include the following elements:, ", paste0(c("weekly.seasonality", "yearly.seasonality", "standardize_regressor", "log_transformation", "target_variable", "regressor1", "regressor2", "daily.seasonality" ), collapse = ", "), ","))
+  if(!is.null(list_params$regressor1)){
+
+    length_reg1 = length(list_params$regressor1)
+
+    for(i in 1:length_reg1){
+
+      if(list_params$regressor1[i] != "no_regressor"){
+        tryCatch({df[,list_params$regressor1[i]]}, error = function(e){stop(paste0("The Regressor ", list_params$regressor1[i], " is not in df."))})
+
+      }else{next()}
+
+    }
   }
 
-  length_reg1 = length(list_params$regressor1)
   tryCatch({df[,list_params$target_variable]}, error = function(e){stop(paste0("The Target Variable ", list_params$target_variable, " is not in df."))})
 
 
-  for(i in 1:length_reg1){
+  if(!is.null(list_params$regressor2)){
 
-    if(list_params$regressor1[i] != "no_regressor"){
-      tryCatch({df[,list_params$regressor1[i]]}, error = function(e){stop(paste0("The Regressor ", list_params$regressor1[i], " is not in df."))})
+    length_reg2 = length(list_params$regressor2)
 
-    }else{next()}
+    for(i in 1:length_reg2){
 
-  }
+      if(list_params$regressor2[i] != "no_regressor"){
+        tryCatch({df[,list_params$regressor2[i]]}, error = function(e){stop(paste0("The Regressor ", list_params$regressor2[i], " is not in df."))})
 
-  length_reg2 = length(list_params$regressor2)
+      }
 
-  for(i in 1:length_reg2){
-
-    if(list_params$regressor2[i] != "no_regressor"){
-      tryCatch({df[,list_params$regressor2[i]]}, error = function(e){stop(paste0("The Regressor ", list_params$regressor2[i], " is not in df."))})
-
-    }else{next()}
-
+    }
   }
 
 
-  if(list_params$weekly.seasonality != FALSE & list_params$weekly.seasonality != TRUE & !is.numeric(list_params$weekly.seasonality)){
-    stop("The 'list_params$weekly.seasonality' argument has to be a bolean (TRUE or FALSE) or a number representing the Fourier terms to generate.")
+  if(!is.null(list_params$weekly.seasonality) && (list_params$weekly.seasonality != FALSE & list_params$weekly.seasonality != TRUE & !is.numeric(list_params$weekly.seasonality) & list_params$weekly.seasonality != 'auto')){
+    stop("The 'list_params$weekly.seasonality' argument has to be a bolean (TRUE or FALSE) or a number representing the Fourier terms to generate or 'auto'.")
   }
 
-  if(list_params$yearly.seasonality != FALSE & list_params$yearly.seasonality != TRUE & !is.numeric(list_params$yearly.seasonality)){
-    stop("The 'list_params$yearly.seasonality' argument has to be a bolean (TRUE or FALSE) or a number representing the Fourier terms to generate.")
+  if(!is.null(list_params$yearly.seasonality) && (list_params$yearly.seasonality != FALSE & list_params$yearly.seasonality != TRUE & !is.numeric(list_params$yearly.seasonality) & list_params$yearly.seasonality != 'auto')){
+    stop("The 'list_params$yearly.seasonality' argument has to be a bolean (TRUE or FALSE) or a number representing the Fourier terms to generate or 'auto'.")
   }
 
-  if(list_params$daily.seasonality != FALSE & list_params$daily.seasonality != TRUE & !is.numeric(list_params$daily.seasonality)){
-    stop("The 'list_params$daily.seasonality' argument has to be a bolean (TRUE or FALSE) or a number representing the Fourier terms to generate.")
+  if(!is.null(list_params$daily.seasonality) && (list_params$daily.seasonality != FALSE & list_params$daily.seasonality != TRUE & !is.numeric(list_params$daily.seasonality) & list_params$daily.seasonality != 'auto' )){
+    stop("The 'list_params$daily.seasonality' argument has to be a bolean (TRUE or FALSE) or a number representing the Fourier terms to generate or 'auto'.")
   }
 
-  if(list_params$standardize_regressor != FALSE & list_params$standardize_regressor != TRUE & list_params$standardize_regressor != "auto"){
+  if(!is.null(list_params$standardize_regressor) && (list_params$standardize_regressor != FALSE & list_params$standardize_regressor != TRUE & list_params$standardize_regressor != "auto" )){
     stop("The 'list_params$standardize_regressor' argument has to be a bolean (TRUE or FALSE) or 'auto'.")
   }
 
-  if(list_params$log_transformation != FALSE & list_params$log_transformation != TRUE){
+  if(!is.null(list_params$log_transformation) && (list_params$log_transformation != FALSE & list_params$log_transformation != TRUE )){
     stop("The 'list_params$log_transformation' argument has to be a bolean (TRUE or FALSE).")
   }
 
@@ -137,15 +144,15 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
     stop("The 'list_params$changepoint.prior.scale' argument has to be a numeric vector.")
   }
 
-  if(class(list_params$seasonality.prior.scale) != "numeric" & !is.null(list_params$seasonality.prior.scale)){
+  if(!is.null(list_params$seasonality.prior.scale) && class(list_params$seasonality.prior.scale) != "numeric"){
     stop("The 'list_params$seasonality.prior.scale' argument has to be a numeric vector.")
   }
 
-  if(class(list_params$regressor.prior.scale) != "numeric" & !is.null(list_params$regressor.prior.scale)){
+  if(!is.null(list_params$regressor.prior.scale) && class(list_params$regressor.prior.scale) != "numeric"){
     stop("The 'list_params$regressor.prior.scale' argument has to be a numeric vector.")
   }
 
-  if(class(list_params$holidays.prior.scale) != "numeric" & !is.null(list_params$holidays.prior.scale)){
+  if(!is.null(list_params$holidays.prior.scale) && class(list_params$holidays.prior.scale) != "numeric"){
     stop("The 'list_params$holidays.prior.scale' argument has to be a numeric vector.")
   }
 

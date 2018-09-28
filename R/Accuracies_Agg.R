@@ -20,6 +20,7 @@
 
 Accuracies_Agg = function(Prophet_Results, interval_agg = NULL, results_type = "test_set", plotFrom = NULL){
 
+
   ######## Error Handling:
 
   if(!is.null(interval_agg)){
@@ -63,19 +64,19 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = NULL, results_type = "
 
     #Default the interval_agg parameter:
     if(is.null(interval_agg)){
-      interval_agg = padr::get_interval(x$Actual_vs_Predictions_Best$Date)
-      warning(paste0("\nNo 'interval_agg' parameter was parsed so the current time interval of the data was used as default (", padr::get_interval(x$Actual_vs_Predictions_Best$Date), ")\n"))
+      interval_agg = padr::get_interval(x$Actuals_vs_Predictions_Best$Date)
+      warning(paste0("\nNo 'interval_agg' parameter was parsed so the current time interval of the data was used as default (", padr::get_interval(x$Actuals_vs_Predictions_Best$Date), ")\n"))
     }
 
 
     #If the interval required is the same as the current interval dont bother aggregating:
-      if(padr::get_interval(x$Actual_vs_Predictions_Best$Date) == interval_agg){
+      if(padr::get_interval(x$Actuals_vs_Predictions_Best$Date) == interval_agg){
 
-        exp_df = paste0("df = x$Actual_vs_Predictions_Best %>% ", filter_exp, " %>% dplyr::rename(NewDate = Date)")
+        exp_df = paste0("df = x$Actuals_vs_Predictions_Best %>% ", filter_exp, " %>% dplyr::rename(NewDate = Date)")
 
       }else{
 
-        exp_df = paste0("df = x$Actual_vs_Predictions_Best %>%
+        exp_df = paste0("df = x$Actuals_vs_Predictions_Best %>%
               padr::thicken(interval = interval_agg) %>%
               dplyr::select(-Date) %>%",
               filter_exp,
@@ -92,7 +93,7 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = NULL, results_type = "
     #Create accuracy overview tab:
     df_accuracy = data.frame( Model = gsub(pattern = "Actuals vs Forecasts \\(|\\)", replacement = "", x = x$Plot_Actual_Predictions$labels$title),
                        Error_Type = paste0(results_type, " (", interval_agg, ")"),
-                       Period_Tested = paste0(min(x$Actual_vs_Predictions_Best$Date[x$Actual_vs_Predictions_Best$train == 0]), " to ", max(x$Actual_vs_Predictions_Best$Date[x$Actual_vs_Predictions_Best$train == 0])),
+                       Period_Tested = paste0(min(x$Actuals_vs_Predictions_Best$Date[x$Actuals_vs_Predictions_Best$train == 0]), " to ", max(x$Actuals_vs_Predictions_Best$Date[x$Actuals_vs_Predictions_Best$train == 0])),
                        regressor1 = x$Best_Parameters$regressor1,
                        regressor2 = x$Best_Parameters$regressor2,
                        changepoint.prior.scale = x$Best_Parameters$changepoint.prior.scale,
@@ -109,13 +110,13 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = NULL, results_type = "
 
     #Gather the data for the final graph:
 
-    if(padr::get_interval(x$Actual_vs_Predictions_Best$Date) == interval_agg){
+    if(padr::get_interval(x$Actuals_vs_Predictions_Best$Date) == interval_agg){
 
-      exp_graph = paste0("df_graph = x$Actual_vs_Predictions_Best %>% dplyr::rename(NewDate = Date) %>% tidyr::gather(`Actuals vs Forecast`, Volumes, actuals:yhat)")
+      exp_graph = paste0("df_graph = x$Actuals_vs_Predictions_Best %>% dplyr::rename(NewDate = Date) %>% tidyr::gather(`Actuals vs Forecast`, Volumes, actuals:yhat)")
 
     }else{
 
-      exp_graph = paste0("df_graph = x$Actual_vs_Predictions_Best %>%
+      exp_graph = paste0("df_graph = x$Actuals_vs_Predictions_Best %>%
                       padr::thicken(interval = interval_agg) %>%
                       dplyr::select(-Date) %>%
                       dplyr::rename('NewDate' = !!names(.[length(.)])) %>%
@@ -137,7 +138,7 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = NULL, results_type = "
     ######### Graph:
     graph_agg = ggplot2::ggplot(data = df_graph, ggplot2::aes(x = as.Date(NewDate), y = Volumes, color = `Actuals vs Forecast`, linetype = `Actuals vs Forecast`)) +
       ggplot2::geom_line() +
-      ggplot2::geom_vline(ggplot2::aes(xintercept = as.numeric(min(x$Actual_vs_Predictions_Best$Date[x$Actual_vs_Predictions_Best$train == 0]))), linetype = 4, colour = "black", alpha = 0.8) +
+      ggplot2::geom_vline(ggplot2::aes(xintercept = as.numeric(min(x$Actuals_vs_Predictions_Best$Date[x$Actuals_vs_Predictions_Best$train == 0]))), linetype = 4, colour = "black", alpha = 0.8) +
       ggthemes::theme_tufte() +
       ggplot2::scale_y_continuous("\nActuals/Forecasts\n", labels = scales::comma_format()) +
       ggplot2::scale_x_date(name = "\nDate", breaks = scales::date_breaks("2 months")) +
