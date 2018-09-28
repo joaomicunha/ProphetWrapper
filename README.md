@@ -118,17 +118,17 @@ xmas_days = data_frame(
 
 - **Plots:** A list with several visualisations of the results including:
 
-- Plot_Actual_Predictions_Best: A ggplot graph of Actuals vs Predictions of the best model with train/test split. The 'plotFrom' parameter controls from when to plot from.
+    - **Plot_Actual_Predictions_Best:** A ggplot graph of Actuals vs Predictions of the best model with train/test split. The 'plotFrom' parameter controls from when to plot from.
 
-- Plot_Point_Accuracies: A ggplot graph with pointwise Absolute Percentage Difference of Actuals vs Forecasts
+    - **Plot_Point_Accuracies:** A ggplot graph with pointwise Absolute Percentage Difference of Actuals vs Forecasts
 
-- Plot_Actual_Predictions_Final: A ggplot graph of Actuals vs Predictions of the final future forecasts. This output is only made available when it is possible to generate Final_Forecasts.
+    - **Plot_Actual_Predictions_Final:** A ggplot graph of Actuals vs Predictions of the final future forecasts. This output is only made available when it is possible to generate Final_Forecasts.
 
-- Plot_Final_Model_Components: Plot the components of the final Prophet forecast. A ggplot2 with the elements that are available of: trend, holidays, weekly seasonality, yearly seasonality, and additive and multiplicative extra regressors. This output is only made available when it is possible to generate Final_Forecasts.
+    - **Plot_Final_Model_Components:** Plot the components of the final Prophet forecast. A ggplot2 with the elements that are available of: trend, holidays, weekly seasonality, yearly seasonality, and additive and multiplicative extra regressors. This output is only made available when it is possible to generate Final_Forecasts.
 
-- Plot_Final_Model_Changepoints: Plot of the changepoints of the final Prophet forecast. This output is only made available when it is possible to generate Final_Forecasts.
+    - **Plot_Final_Model_Changepoints:** Plot of the changepoints of the final Prophet forecast. This output is only made available when it is possible to generate Final_Forecasts.
 
-- Plot_CV_Accuracy: A ggplot graph illustrating the performance on cross-validation for different horizon (look-ahead) periods. This output is only made available if best_model_in parameter is set to 'cv'.
+    - **Plot_CV_Accuracy:** A ggplot graph illustrating the performance on cross-validation for different horizon (look-ahead) periods. This output is only made available if best_model_in parameter is set to 'cv'.
 
 
 ### Accuracies_Agg Function:
