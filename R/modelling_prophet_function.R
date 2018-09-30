@@ -236,6 +236,16 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                                                          uncertainty = TRUE,
                                                          render_plot = FALSE )
 
+      #Plot Components has to be rendered in a different way because returns a list with graphical elements:
+      plot_components_expr = c()
+
+      for(i in 1:length(plot_components)){
+        plot_components_expr[i] = paste0("plot_components[[", i, "]]")
+      }
+
+      eval(parse(text = paste0("final_grid_components = gridExtra::arrangeGrob(", paste(plot_components_expr, collapse = ", "), ", ncol = 1)")))
+      final_plot_components = ggplotify::as.ggplot(final_grid_components)
+
       plot_changepoints = plot(model, forecast_pred) + prophet::add_changepoints_to_plot(model)
 
 
@@ -246,7 +256,7 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
                                                   y_pred_train = y_pred_train,
                                                   y_true_train = y_true_train),
              model = model,
-             plot_components = plot_components,
+             plot_components = final_plot_components,
              plot_changepoints = plot_changepoints)
 
         )

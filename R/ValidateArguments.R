@@ -176,14 +176,28 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
     stop("'final_predictions' once set to numeric/integer will define the final forecast horizon. So it has to be length 1.")
   }
 
-  if(sum(class(final_predictions) == "data.frame") >= 1 & sum(colnames(final_predictions) == "Date") == 0){
-    stop("'final_predictions' once set to data.frame it has to contain a column Date (class Date).")
-  }
+  if(class(final_predictions) == "data.frame"){
 
+    if(! "Date" %in% colnames(final_predictions)){
+      stop("'final_predictions' once set to data.frame it has to contain a column Date (class Date).")
+
+    }else if(class(final_predictions$Date) != "Date"){
+     stop("final_predictions$Date column has to be class Date.")
+
+    }else if(!is.null(list_params$regressor1) && (list_params$regressor1 != "no_regressor" & !(list_params$regressor1 %in% colnames(final_predictions))   )){
+      stop(paste0(list_params$regressor1, " is not included in the df final_predictions"))
+
+    }else if(!is.null(list_params$regressor2) && (list_params$regressor2 != "no_regressor" & !(list_params$regressor2 %in% colnames(final_predictions))   )){
+      stop(paste0(list_params$regressor2, " is not included in the df final_predictions"))
+    }
+
+  }
 
   if(class(final_predictions) == "ProphetWrapper"){
     if(is.null(final_predictions$Final_Forecasts)){
       stop("Not possible to use a 'ProphetWrapper' object WITHOUT Final_Forecasts on the 'final_predictions' argument. final_predicitons should only be populated with ProphetWrapper object if regressors are being tested.")
+    }else if((!is.null(list_params$regressor1) && list_params$regressor1 != "no_regressor") &  (!is.null(list_params$regressor2) && list_params$regressor2 != "no_regressor") ){
+      stop("Only 1 ProphetWrapper object was parsed but 2 regressors are used. Please consider either parsing a list with two ProphetWrapper objects or a data-frame of future regressors.")
     }
   }
 
@@ -197,11 +211,27 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
     }
   }
 
-  if(sum(class(final_predictions) == "data.frame") >= 1 | class(final_predictions) == "ProphetWrapper"){
-    final_predictions = list(final_predictions)
+  if(class(final_predictions) == "list" & length(final_predictions) >2){
+    stop("A max of two regressors are used in Prophet. final_predictions (if set to a list) has to be length two or lower.")
+  }
+
+  if(sum(sapply(final_predictions, class) == "ProphetWrapper") == length(final_predictions) & !is.null(final_predictions)){
+
+    if(sum(sapply(final_predictions, function(x){is.null(x$Final_Forecasts)})) > 0){
+      stop("Input of FutureRegressors not in the right format. The ProphetWrapper objects parsed to final_forecasts_list_future_regressors don't contain 'Final_Forecasts'. Try to input a data.frame with Date and future regressor values alternatively.")
+    }
+
+    if(nrow(final_predictions[[1]]$Final_Forecasts) != nrow(final_predictions[[2]]$Final_Forecasts)){
+      stop("The Final_Forecasts from the two ProphetWrapper objects parsed to 'final_predictions' argument don't have the same length.")
+    }
+
   }
 
   #Return the original df if all the errors pass:
   return(original)
 
 }
+
+
+
+

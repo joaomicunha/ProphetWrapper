@@ -427,7 +427,12 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   if((is.null(final_predictions) | is.integer(final_predictions) | is.numeric(final_predictions)) & (accuracies$regressor1 != "no_regressor" | accuracies$regressor2 != "no_regressor"  )){
 
     warning("\nNot possible to run the final optimised model on all available data since the future values of the regressors were not made available \n")
-    models_output = list(forecasts_all = NULL)
+    models_output = list(forecasts_all = NULL,
+                         plot_components = NULL,
+                         plot_changepoints = NULL,
+                         model = NULL)
+
+    final_plot_components = NULL
 
   }else if(length(list_params$regressor1) >1 | length(list_params$regressor2) >1){
 
@@ -436,6 +441,8 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                          plot_components = NULL,
                          plot_changepoints = NULL,
                          model = NULL)
+
+    final_plot_components = NULL
 
   }else{
 
@@ -466,23 +473,9 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                     plotFrom_viz = plotFrom,
                                     debug_viz = debug)
 
-  #Plot Components has to be rendered in a different way because returns a list with graphical elements:
-  plot_components_expr = c()
-
-  for(i in 1:length(forecasts_inbound_all$Plots$Plot_Final_Model_Components)){
-
-
-     plot_components_expr[i] = paste0("models_output$plot_components[[", i, "]]")
-
-   }
-
-
-  eval(parse(text = paste0("final_grid_components = gridExtra::arrangeGrob(", paste(expr, collapse = ", "), ", ncol = 1)")))
-
-  final_plot_components = ggplotify::as.ggplot(final_grid_components)
 
  #All Graphs:
- plots_generate_viz[["Plot_Final_Model_Components"]] = final_plot_components
+ plots_generate_viz[["Plot_Final_Model_Components"]] = models_output$plot_components
  plots_generate_viz[["Plot_Final_Model_Changepoints"]] = models_output$plot_changepoints
  plots_generate_viz[["Plot_CV_Accuracy"]] = if(best_model_in == 'cv'){final_graph_cv}else{NULL}
 
