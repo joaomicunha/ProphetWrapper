@@ -7,6 +7,7 @@
 #' @param list_params list of params
 #' @param best_model_in best_model_in
 #' @param plotFrom plotFrom
+#' @param holidays holidays df
 #' @param main_accuracy_metric main_accuracy_metric
 #' @param train_set_imp_perc train_set_imp_perc
 #' @param judgmental_forecasts judgmental_forecasts
@@ -18,7 +19,7 @@
 #'
 
 
-ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accuracy_metric, train_set_imp_perc, judgmental_forecasts, final_predictions, debug = FALSE){
+ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accuracy_metric, train_set_imp_perc, judgmental_forecasts, final_predictions, holidays, debug = FALSE){
 
   if(debug){browser()}
 
@@ -39,8 +40,11 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
     stop('The df object has to include at least 2 columns (a target_var and a date variable).')
   }
 
-  tryCatch({exists("holidays")}, error = function(e){stop(paste0("The 'holidays' argument parsed doesn't exist in memory."))})
+  tryCatch({holidays}, error = function(e){stop(paste0("The 'holidays' argument parsed doesn't exist in memory."))})
 
+  if(sum(c("holiday", "ds") %in% colnames(holidays)) <2){
+    stop("'holidays' data frame has to contain columns holiday (character) and ds (date type) and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. ")
+  }
 
   if(sum(sapply(df, is.numeric)) == 0){
     stop("No numeric/integer type column was identified in 'df'. Please include a numeric/integer and a date column to continue.")

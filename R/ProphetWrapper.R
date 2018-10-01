@@ -26,7 +26,7 @@
 #' @param best_model_in A character value either: 'train', 'test', 'mix_train_test' or 'cv'. Defaults to 'test'. This parameter defines the criteria to pick the best model - either based on accuracy on training set or in test set. The user might have different business requirements and wants to understand the general performance of the model cross-validated over a set of periods ('cv').
 #' @param train_set_imp_perc A numeric input between 0 and 1 representing the weight to give to the training set results relatively to the test set. Defaults to 0.5 (mean results). This parameter only affects the results when 'best_model_in' is set to 'mix_train_test'. When set to 1 the results are the same as setting 'best_model_in' to 'train'.
 #' @param main_accuracy_metric A character value either: 'MAPE', 'MSE', 'MAE', 'RMSE' or MPE (it defaults to MAPE). This defines the criteria for selecting the best model (together with the 'best_model_in' parameter).
-#' @param holidays A data-frame with columns holiday (character) and ds (date type)and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. lower_window=-2 will include 2 days prior to the date as holidays. Also optionally can have a column prior_scale specifying the prior scale for each holiday. It defaults to NULL in which case no holidays are used.
+#' @param holidays A data-frame with columns holiday (character) and ds (date type) and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. lower_window=-2 will include 2 days prior to the date as holidays. Also optionally can have a column prior_scale specifying the prior scale for each holiday. It defaults to NULL in which case no holidays are used.
 #' @param judgmental_forecasts A names vector with the date as name and the value of the judmental forecast. For example if we know that allways on the xmas day the value we are trying to predict is zero we can parse judgmental_forecasts = c('2016-12-25' = 1,  '2017-12-25' = 1, '2018-12-25' = 1). If the judgemental forecast is zero don't parse the value zero and parse 1 instead. This will facilitate with log transformations.
 #' @param k_impute Integer width of the moving average window. Expands to both sides of the center element e.g. k=2 means 4 observations (2 left, 2 right) are taken into account. If all observations in the current window are NA, the window size is automatically increased until there are at least 2 non-NA values present (from ImputeTS package). Defaults to 2.
 #' @param method_impute Weighting method to be used for imputing missing values or padded time-series. Accepts the following input: "simple" - Simple Moving Average (SMA), "linear" - Linear Weighted Moving Average (LWMA) or "exponential" - Exponential Weighted Moving Average (EWMA). Defaults to 'exponential'.
@@ -116,6 +116,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                list_params = list_params,
                                best_model_in = best_model_in,
                                plotFrom = plotFrom,
+                               holidays = holidays,
                                main_accuracy_metric = main_accuracy_metric,
                                train_set_imp_perc = train_set_imp_perc,
                                judgmental_forecasts = judgmental_forecasts,
@@ -127,37 +128,11 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   cat(paste0("*** Forecasting the target variable: ", list_params$target_variable, " ***\n"))
   cat(paste0("* Test Period from ", min(original$Date[original$train == 0]), " to ",  max(original$Date[original$train == 0]), " *\n\n"))
 
-  if(is.null(list_params$changepoint.prior.scale)){list_params$changepoint.prior.scale = 0.05; cat("Defaulting changepoint.prior.scale to 0.05 ...\n")}
+  defaulted_arguments_and_grid = DefaultArguments(list_params = list_params, debug = debug)
 
-  if(is.null(list_params$regressor.prior.scale)){list_params$regressor.prior.scale = 0.05; cat("Defaulting regressor.prior.scale to 0.05 ... \n")}
-
-  if(is.null(list_params$holidays.prior.scale)){list_params$holidays.prior.scale = 10; cat("Defaulting holidays.prior.scale to 10 ... \n")}
-
-  if(is.null(list_params$seasonality.prior.scale)){list_params$seasonality.prior.scale = 10; cat("Defaulting seasonality.prior.scale to 10 ... \n")}
-
-  if(is.null(list_params$weekly.seasonality)){list_params$weekly.seasonality = 'auto'; cat("Defaulting weekly.seasonality to 'auto' ... \n")}
-
-  if(is.null(list_params$yearly.seasonality)){list_params$yearly.seasonality = 'auto'; cat("Defaulting yearly.seasonality to 'auto' ... \n")}
-
-  if(is.null(list_params$daily.seasonality)){list_params$daily.seasonality = 'auto'; cat("Defaulting daily.seasonality to 'auto' ... \n")}
-
-  if(is.null(list_params$log_transformation)){list_params$log_transformation = FALSE; cat("Defaulting log_transformation to FALSE ... \n")}
-
-  if(is.null(list_params$standardize_regressor)){list_params$standardize_regressor = FALSE; cat("Defaulting standardize_regressor to FALSE ... \n")}
-
-  if(is.null(list_params$regressor1)){list_params$regressor1 = "no_regressor"}
-
-  if(is.null(list_params$regressor2)){list_params$regressor2 = "no_regressor"}
-
-
-  #cleaning the parameters to avoid duplication:
-
-  list_params$changepoint.prior.scale = unique(list_params$changepoint.prior.scale)
-  list_params$seasonality.prior.scale = unique(list_params$seasonality.prior.scale)
-  list_params$holidays.prior.scale = unique(list_params$holidays.prior.scale)
-  list_params$regressor.prior.scale = unique(list_params$regressor.prior.scale)
-  list_params$regressor1 = unique(list_params$regressor1) %>% as.character()
-  list_params$regressor2 = unique(list_params$regressor2) %>% as.character()
+  grid = defaulted_arguments_and_grid$grid_final
+  list_params = defaulted_arguments_and_grid$list_params_final
+  final_unique_regressors = defaulted_arguments_and_grid$final_unique_regressors
 
 
   #~~~ Create Train and Testing Set =================================================================
@@ -186,15 +161,6 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
   df_train = df_all %>%
     dplyr::filter(train == 1)
 
-  #~~~ Create a list with predictions and accuracy data.frames for each combination of  changepoint.prior.scale and prior.scale. =================================================================
-
-  grid = expand.grid(changepoint.prior.scale = list_params$changepoint.prior.scale,
-                     seasonality.prior.scale = list_params$seasonality.prior.scale,
-                     regressor.prior.scale = list_params$regressor.prior.scale,
-                     regressor1 = list_params$regressor1,
-                     holidays.prior.scale = list_params$holidays.prior.scale,
-                     regressor2 = list_params$regressor2,
-                     stringsAsFactors = F)
 
   #~~~ Printing Informative Messeges =================================================================
   cat(paste0("We are testing Prophet models for ", length(list_params$changepoint.prior.scale), " values of changepoint.prior.scale, ",length(list_params$seasonality.prior.scale), " values of seasonality.prior.scale, ", length(list_params$regressor.prior.scale), " of regressor.prior.scale, ", length(list_params$regressor1),   " of regressors1, ", length(list_params$regressor2), " of regressors2,", length(list_params$holidays.prior.scale), " values of holidays.prior.scale. This is a total of ", nrow(grid), " models.\n\n"))
@@ -434,7 +400,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
 
     final_plot_components = NULL
 
-  }else if(length(list_params$regressor1) >1 | length(list_params$regressor2) >1){
+  }else if(length(final_unique_regressors) >1){
 
     warning("\nNot possible to run the final optimised model on all available data since the optimal regressors were estimated within ProphetWrapper and therefore can't be parsed in advance \n")
     models_output = list(forecasts_all = NULL,
