@@ -9,7 +9,7 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
   train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 2,
   method_impute = "exponential", parallel = FALSE, seed = 12345,
   period_cv = NULL, initial_cv = NULL, horizon_cv = NULL,
-  final_predictions = NULL, debug = FALSE)
+  final_predictions = NULL, testing_period = NULL, debug = FALSE)
 }
 \arguments{
 \item{df}{A data-frame with a numeric column, a date type column, a regressor and a column train (for train/test split). The 'train' column has to have 1 and 0 only where 1 refer to training set.}
@@ -63,6 +63,8 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
  \item{\strong{ProphetWrapper Object}} {The user can parse directly a ProphetWrapper object (output of Prophet_Wrapper function). This reveals to be useful when using 'stacked' modelling. The regressors used are the Final_Forecasts from the ProphetWrapper object parsed and the length/horizon of the final forecasts is the number of future rows in Final_Forecasts.}
  \item{\strong{NULL (default)}} {If set to NULL, final_predictions is set to the length of the test set (assumes the test set is representative of the future horizon.)}
 }}
+
+\item{testing_period}{An integer value representing the length/horizon of the testing period. There is no default since the test period is critical for ProphetWrapper's functionality.}
 
 \item{debug}{TRUE for browsing the function. Defaults to FALSE.}
 }

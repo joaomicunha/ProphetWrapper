@@ -12,6 +12,7 @@
 #' @param train_set_imp_perc train_set_imp_perc
 #' @param judgmental_forecasts judgmental_forecasts
 #' @param final_predictions final_predictions
+#' @param testing_period testing_period
 #' @param debug debugger
 #'
 #' @import magrittr
@@ -19,7 +20,7 @@
 #'
 
 
-ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accuracy_metric, train_set_imp_perc, judgmental_forecasts, final_predictions, holidays, debug = FALSE){
+ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accuracy_metric, train_set_imp_perc, judgmental_forecasts, final_predictions, holidays, testing_period, debug = FALSE){
 
   if(debug){browser()}
 
@@ -54,10 +55,8 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
     stop("No Date type column was identified in 'df'. Please include a numeric and a date column to continue.")
   }
 
-  tryCatch({df[,"train"]}, error = function(e){stop(paste0("The 'train' column is not in df."))})
-
-  if(sum(unique(df$train) %in% c(1,0)) != 2){
-    stop("The 'train' column has to include 1 or 0 values.")
+  if(is.null(testing_period) || (testing_period == 0 | (!is.integer(testing_period) & !is.numeric(testing_period)))){
+    stop("Please specify a 'testing_period' higher than 0 as an integer value.")
   }
 
   if(is.null(list_params$target_var)){
@@ -71,7 +70,10 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
   original = df %>%
     dplyr::rename_if(is.date ,
                      dplyr::funs(sub(., 'Date', .))) %>%
-    dplyr::rename(target_var = !!vars)
+    dplyr::rename(target_var = !!vars) %>%
+    dplyr::mutate(rowNumber = row_number(),
+                  train = ifelse(rowNumber > max(rowNumber) - round(testing_period), 0, 1)) %>%
+    dplyr::select(-rowNumber)
 
 
   if(!is.null(plotFrom)){

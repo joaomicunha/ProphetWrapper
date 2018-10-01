@@ -36,6 +36,7 @@
 #' @param period_cv Used if best_model_in == 'cv'. Integer amount of time between cutoff dates. Same units as horizon. If not provided, 0.5 * horizon is used (for more details see documentation of prophet::cross_validation function and/or check Details section below).
 #' @param initial_cv Used if best_model_in == 'cv'. Integer size of the first training period. If not provided, 3 * horizon is used. Same units as horizon (for more details see documentation of prophet::cross_validation function and/or check Details section below).
 #' @param horizon_cv Used if best_model_in == 'cv'. Integer size of the horizon (for more details see documentation of prophet::cross_validation function and/or check Details section below).
+#' @param testing_period An integer value representing the length/horizon of the testing period. There is no default since the test period is critical for ProphetWrapper's functionality.
 #' @param final_predictions final_predictions is the argument that will control the length/horizon of the final forecasts (the forecast generated from the optimised model trained on all available data). The values of final_predictions argument can be:
 #'  \itemize{
 #'  \item{\strong{integer}}  {If final_predictions is set to an integer, the final forecast horizon will have length final_predictions. Please note that if the final forecast uses regressors, these have to be parsed here as a data.frame (see below).}
@@ -98,7 +99,7 @@
 
 
 
-Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "test", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 2, method_impute = "exponential", parallel = FALSE, seed = 12345, period_cv = NULL, initial_cv = NULL, horizon_cv = NULL, final_predictions = NULL, debug = FALSE){
+Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "test", plotFrom = NULL, main_accuracy_metric = "MAPE", train_set_imp_perc = 0.5, judgmental_forecasts = NULL, k_impute = 2, method_impute = "exponential", parallel = FALSE, seed = 12345, period_cv = NULL, initial_cv = NULL, horizon_cv = NULL, final_predictions = NULL, testing_period = NULL, debug = FALSE){
 
 
   #~~~ DEBUG ================================================================
@@ -121,6 +122,7 @@ Prophet_Wrapper = function(df, list_params, holidays = NULL, best_model_in = "te
                                train_set_imp_perc = train_set_imp_perc,
                                judgmental_forecasts = judgmental_forecasts,
                                final_predictions = final_predictions,
+                               testing_period = testing_period,
                                debug = debug)
 
   #~~~ Defaulting Parameters ================================================

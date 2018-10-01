@@ -6,7 +6,7 @@
 \usage{
 ValidateArguments(df, list_params, best_model_in, plotFrom,
   main_accuracy_metric, train_set_imp_perc, judgmental_forecasts,
-  final_predictions, holidays, debug = FALSE)
+  final_predictions, holidays, testing_period, debug = FALSE)
 }
 \arguments{
 \item{df}{A data-frame original}
@@ -26,6 +26,8 @@ ValidateArguments(df, list_params, best_model_in, plotFrom,
 \item{final_predictions}{final_predictions}
 
 \item{holidays}{holidays df}
+
+\item{testing_period}{testing_period}
 
 \item{debug}{debugger}
 }
