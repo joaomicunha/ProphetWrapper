@@ -40,7 +40,7 @@ Prophet_Wrapper(df, list_params, holidays = NULL, best_model_in = "test",
 
 \item{train_set_imp_perc}{A numeric input between 0 and 1 representing the weight to give to the training set results relatively to the test set. Defaults to 0.5 (mean results). This parameter only affects the results when 'best_model_in' is set to 'mix_train_test'. When set to 1 the results are the same as setting 'best_model_in' to 'train'.}
 
-\item{judgmental_forecasts}{A names vector with the date as name and the value of the judmental forecast. For example if we know that allways on the xmas day the value we are trying to predict is zero we can parse judgmental_forecasts = c('2016-12-25' = 1,  '2017-12-25' = 1, '2018-12-25' = 1). If the judgemental forecast is zero don't parse the value zero and parse 1 instead. This will facilitate with log transformations.}
+\item{judgmental_forecasts}{A names vector with the date as name and the value of the judmental forecast. For example if we know in advance that on the Xmas day the value we are trying to predict is zero we can parse judgmental_forecasts = c('2016-12-25' = 0,  '2017-12-25' = 0, '2018-12-25' = 0).}
 
 \item{k_impute}{Integer width of the moving average window. Expands to both sides of the center element e.g. k=2 means 4 observations (2 left, 2 right) are taken into account. If all observations in the current window are NA, the window size is automatically increased until there are at least 2 non-NA values present (from ImputeTS package). Defaults to 2.}
 

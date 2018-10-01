@@ -81,7 +81,7 @@ ProphetWrapper will automatically detect the frequency of the data and pad the s
 
 ### Judgmental Forecasts
 
-There is also the possibility to evaluate the models based on 'judgmental forecasts'. Sometimes the user has business knowledge and certainty about the future value of the target variable on a specific period. As an example, when predicting sales from a particular group of stores, the user might know that on the Xmas day there is no sales since the shops are closed. My parsing a named vector with dates and values, this prior knowledge can be taken into account when evaluating the models. The named vector to be parsed as judgmental_forecasts should have the format c('2016-12-25' = 1,  '2017-12-25' = 1, '2018-12-25' = 1).
+There is also the possibility to evaluate the models based on 'judgmental forecasts'. Sometimes the user has business knowledge and certainty about the future value of the target variable on a specific period. As an example, when predicting sales from a particular group of stores, the user might know that on the Xmas day there is no sales since the shops are closed. By parsing a named vector with dates and values, this prior knowledge can be taken into account when evaluating the models. The named vector to be parsed as judgmental_forecasts should have the format c('2016-12-25' = 0,  '2017-12-25' = 0, '2018-12-25' = 0).
 
 ### Holidays
 

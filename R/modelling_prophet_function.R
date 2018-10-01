@@ -158,19 +158,29 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
     # If judgemental forecast points are parsed we define them here by parsing these to ypred and y in the calculation of accuracy metrics:
     if(!is.null(judgmental_forecasts.modelling)){
 
+      #hack to avoid calculating the MAPE as NaN. Later we return the original value of judgmental_forecasts:
+      judgmental_forecasts_tmp = ifelse(judgmental_forecasts.modelling == 0, 1, judgmental_forecasts.modelling)
+
       #Creating vectors of judgmental forecasts:
       adj_judmental_forecasts = c()
       adj_judmental_actual = c()
+      adj_judmental_lower = c()
+      adj_judmental_upper = c()
 
       for(i in 1:length(judgmental_forecasts.modelling)){
-        adj_judmental_forecasts[i] = paste0("yhat = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts.modelling[i]), "'), ", judgmental_forecasts.modelling[i], ", yhat)")
-        adj_judmental_actual[i] = paste0("target_var = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts.modelling[i]), "'), ", judgmental_forecasts.modelling[i], ", target_var)")
+        adj_judmental_forecasts[i] = paste0("yhat = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts_tmp[i]), "'), ", judgmental_forecasts_tmp[i], ", yhat)")
+        adj_judmental_actual[i] = paste0("target_var = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts_tmp[i]), "'), ", judgmental_forecasts_tmp[i], ", target_var)")
+        adj_judmental_lower[i] = paste0("yhat_lower = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts_tmp[i]), "'), ", judgmental_forecasts_tmp[i], ", yhat_lower)")
+        adj_judmental_upper[i] = paste0("yhat_upper = ifelse(as.Date(Date) == as.Date('", names(judgmental_forecasts_tmp[i]), "'), ", judgmental_forecasts_tmp[i], ", yhat_upper)")
+
       }
 
       forecast_temp_eval = paste0("forecast_tmp = forecast %>%",
                                   "dplyr::mutate(",
                                   paste0(adj_judmental_forecasts, collapse = ", "), ", ",
-                                  paste0(adj_judmental_actual, collapse = ", "),
+                                  paste0(adj_judmental_actual, collapse = ", "), ", ",
+                                  paste0(adj_judmental_lower, collapse = ", "), ", ",
+                                  paste0(adj_judmental_upper, collapse = ", "),
                                   ") %>%
                                       dplyr::select(Date, yhat, target_var, yhat_lower, yhat_upper, Date)")
 
@@ -197,12 +207,22 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
     #Creating the forecast vs actuals data-frame:
     holiday_dates = unique(holidays_modelling$ds)
 
+    judgmental_forecasts_df = data.frame(judgmental_forecasts.modelling) %>%
+      dplyr::mutate(Date = as.Date(row.names(.))) %>%
+      dplyr::select(Date, judgmental_forecasts.modelling)
+
     forecast_tmp = forecast_tmp %>%
+      dplyr::left_join(judgmental_forecasts_df, by = c("Date")) %>%
       dplyr::mutate(WeekDay = weekdays.Date(Date),
                     Holiday = ifelse(rep(is.null(holidays_modelling), nrow(forecast)), FALSE, (as.Date(Date) %in% as.Date(holiday_dates))),
-                    actuals = target_var,
+                    actuals = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, target_var),
+                    yhat = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, yhat),
+                    yhat_lower = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, yhat_lower),
+                    yhat_upper = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, yhat_upper),
                     diff_abs = abs(actuals - yhat)/actuals,
                     diff = (actuals - yhat)/actuals,
+                    diff_abs = ifelse(!is.na(judgmental_forecasts.modelling), 0, diff_abs),
+                    diff = ifelse(!is.na(judgmental_forecasts.modelling), 0, diff),
                     changepoint.prior.scale = changepoint.prior.scale.modelling,
                     seasonality.prior.scale = seasonality.prior.scale.modelling,
                     regressor.prior.scale = regressor.prior.scale.modelling,
