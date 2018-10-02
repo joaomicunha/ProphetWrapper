@@ -41,8 +41,8 @@ GenerateViz = function(df_best_model_viz, Final_Forecasts_viz, list_params_viz, 
 
   #Graph 2 - Pointwise Absolute % Difference Actuals and Forecasts:
   graph2 = ggplot2::ggplot(data = df_graph2, ggplot2::aes(x = Date, y = diff_abs, color = diff_abs, label = label)) +
-            geom_point() +
-            geom_text(ggplot2::aes(label=label), hjust=0, vjust=0, size = 2) +
+            ggplot2::geom_point() +
+            ggplot2::geom_text(ggplot2::aes(label=label), hjust=0, vjust=0, size = 2) +
             ggplot2::geom_vline(ggplot2::aes(xintercept = as.numeric(min(df_graph2$Date[df_graph2$train == 0]))), linetype = 4, colour = "#40dfad", alpha = 0.7) +
             ggthemes::theme_tufte() +
             ggplot2::scale_y_continuous("\nAbsolute % Difference Actuals vs Forecasts\n", labels = scales::percent_format()) +
