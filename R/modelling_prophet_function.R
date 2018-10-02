@@ -69,6 +69,10 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
     }
 
 
+  holiday_dates = unique(holidays_modelling$ds)
+
+
+
     if(is.null(holidays_modelling)){
 
       model = prophet::prophet(df = df_modelling,
@@ -192,6 +196,47 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
       y_pred_train = forecast_tmp$yhat[forecast_tmp$Date < as.Date(min(df_test_modelling$ds))]
       y_true_train = forecast_tmp$target_var[forecast_tmp$Date < as.Date(min(df_test_modelling$ds))]
 
+      #If judgemental forecats are parsed we will use them in the final results:
+      judgmental_forecasts_df = data.frame(judgmental_forecasts.modelling) %>%
+        dplyr::mutate(Date = as.Date(row.names(.))) %>%
+        dplyr::select(Date, judgmental_forecasts.modelling)
+
+      forecast_tmp = forecast_tmp %>%
+        dplyr::left_join(judgmental_forecasts_df, by = c("Date")) %>%
+        dplyr::mutate(WeekDay = weekdays.Date(Date),
+                      Holiday = ifelse(rep(is.null(holidays_modelling), nrow(forecast)), FALSE, (as.Date(Date) %in% as.Date(holiday_dates))),
+                      actuals = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, target_var),
+                      yhat = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, yhat),
+                      yhat_lower = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, yhat_lower),
+                      yhat_upper = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, yhat_upper),
+                      diff_abs = abs(actuals - yhat)/actuals,
+                      diff = (actuals - yhat)/actuals,
+                      diff_abs = ifelse(!is.na(judgmental_forecasts.modelling), 0, diff_abs),
+                      diff = ifelse(!is.na(judgmental_forecasts.modelling), 0, diff),
+                      changepoint.prior.scale = changepoint.prior.scale.modelling,
+                      seasonality.prior.scale = seasonality.prior.scale.modelling,
+                      regressor.prior.scale = regressor.prior.scale.modelling,
+                      holidays.prior.scale = holidays.prior.scale.modelling,
+                      regressor1 = regressor1.modelling,
+                      regressor2 = regressor2.modelling,
+                      train = ifelse(as.Date(Date) > max(as.Date(df_modelling$ds)), 0, 1)) %>%
+        dplyr::select(Date,
+                      regressor1,
+                      regressor2,
+                      changepoint.prior.scale,
+                      seasonality.prior.scale,
+                      regressor.prior.scale,
+                      holidays.prior.scale,
+                      actuals,
+                      yhat,
+                      yhat_lower,
+                      yhat_upper,
+                      diff_abs,
+                      diff,
+                      WeekDay,
+                      Holiday,
+                      train)
+
     }else{
 
       forecast_tmp = forecast
@@ -202,50 +247,38 @@ modelling_prophet_function = function(df_all_modelling, df_test_modelling, df_tr
       y_pred_train = forecast_tmp$yhat[as.Date(forecast_tmp$Date) < as.Date(min(df_test_modelling$ds))]
       y_true_train = df_modelling$target_var
 
+      forecast_tmp = forecast_tmp %>%
+        dplyr::mutate(WeekDay = weekdays.Date(Date),
+                      Holiday = ifelse(rep(is.null(holidays_modelling), nrow(forecast)), FALSE, (as.Date(Date) %in% as.Date(holiday_dates))),
+                      actuals = target_var,
+                      diff_abs = abs(actuals - yhat)/actuals,
+                      diff = (actuals - yhat)/actuals,
+                      changepoint.prior.scale = changepoint.prior.scale.modelling,
+                      seasonality.prior.scale = seasonality.prior.scale.modelling,
+                      regressor.prior.scale = regressor.prior.scale.modelling,
+                      holidays.prior.scale = holidays.prior.scale.modelling,
+                      regressor1 = regressor1.modelling,
+                      regressor2 = regressor2.modelling,
+                      train = ifelse(as.Date(Date) > max(as.Date(df_modelling$ds)), 0, 1)) %>%
+        dplyr::select(Date,
+                      regressor1,
+                      regressor2,
+                      changepoint.prior.scale,
+                      seasonality.prior.scale,
+                      regressor.prior.scale,
+                      holidays.prior.scale,
+                      actuals,
+                      yhat,
+                      yhat_lower,
+                      yhat_upper,
+                      diff_abs,
+                      diff,
+                      WeekDay,
+                      Holiday,
+                      train)
+
     }
 
-    #Creating the forecast vs actuals data-frame:
-    holiday_dates = unique(holidays_modelling$ds)
-
-    judgmental_forecasts_df = data.frame(judgmental_forecasts.modelling) %>%
-      dplyr::mutate(Date = as.Date(row.names(.))) %>%
-      dplyr::select(Date, judgmental_forecasts.modelling)
-
-    forecast_tmp = forecast_tmp %>%
-      dplyr::left_join(judgmental_forecasts_df, by = c("Date")) %>%
-      dplyr::mutate(WeekDay = weekdays.Date(Date),
-                    Holiday = ifelse(rep(is.null(holidays_modelling), nrow(forecast)), FALSE, (as.Date(Date) %in% as.Date(holiday_dates))),
-                    actuals = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, target_var),
-                    yhat = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, yhat),
-                    yhat_lower = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, yhat_lower),
-                    yhat_upper = ifelse(!is.na(judgmental_forecasts.modelling), judgmental_forecasts.modelling, yhat_upper),
-                    diff_abs = abs(actuals - yhat)/actuals,
-                    diff = (actuals - yhat)/actuals,
-                    diff_abs = ifelse(!is.na(judgmental_forecasts.modelling), 0, diff_abs),
-                    diff = ifelse(!is.na(judgmental_forecasts.modelling), 0, diff),
-                    changepoint.prior.scale = changepoint.prior.scale.modelling,
-                    seasonality.prior.scale = seasonality.prior.scale.modelling,
-                    regressor.prior.scale = regressor.prior.scale.modelling,
-                    holidays.prior.scale = holidays.prior.scale.modelling,
-                    regressor1 = regressor1.modelling,
-                    regressor2 = regressor2.modelling,
-                    train = ifelse(as.Date(Date) > max(as.Date(df_modelling$ds)), 0, 1)) %>%
-      dplyr::select(Date,
-                    regressor1,
-                    regressor2,
-                    changepoint.prior.scale,
-                    seasonality.prior.scale,
-                    regressor.prior.scale,
-                    holidays.prior.scale,
-                    actuals,
-                    yhat,
-                    yhat_lower,
-                    yhat_upper,
-                    diff_abs,
-                    diff,
-                    WeekDay,
-                    Holiday,
-                    train)
 
     ### IF modelling_type == 'final' we also want to export the final model and the final prophet graphs:
 

@@ -43,7 +43,7 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
 
   tryCatch({holidays}, error = function(e){stop(paste0("The 'holidays' argument parsed doesn't exist in memory."))})
 
-  if(sum(c("holiday", "ds") %in% colnames(holidays)) <2){
+  if(sum(c("holiday", "ds") %in% colnames(holidays)) <2 & !is.null(holidays)){
     stop("'holidays' data frame has to contain columns holiday (character) and ds (date type) and optionally columns lower_window and upper_window which specify a range of days around the date to be included as holidays. ")
   }
 
@@ -71,7 +71,7 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
     dplyr::rename_if(is.date ,
                      dplyr::funs(sub(., 'Date', .))) %>%
     dplyr::rename(target_var = !!vars) %>%
-    dplyr::mutate(rowNumber = row_number(),
+    dplyr::mutate(rowNumber = dplyr::row_number(),
                   train = ifelse(rowNumber > max(rowNumber) - round(testing_period), 0, 1)) %>%
     dplyr::select(-rowNumber)
 
