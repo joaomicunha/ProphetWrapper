@@ -28,6 +28,22 @@ ValidateArguments = function(df, list_params, best_model_in, plotFrom, main_accu
 
   is.date <- function(x) inherits(x, 'Date')
 
+  if(sum(names(list_params) %in% c("target_variable",
+     "changepoint.prior.scale",
+     "regressor.prior.scale",
+     "holidays.prior.scale",
+     "seasonality.prior.scale",
+     "weekly.seasonality",
+     "yearly.seasonality",
+     "daily.seasonality",
+     "regressor1",
+     "regressor2",
+     "standardize_regressor",
+     "log_transformation")) != length(list_params)){
+
+    stop("Some of the value names of list_params are not in the right format.")
+  }
+
 
   if(is.null(df)){
     stop("No df provided ('df').")
