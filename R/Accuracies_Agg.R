@@ -91,7 +91,7 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = NULL, results_type = "
     eval(parse(text = exp_df))
 
     #Create accuracy overview tab:
-    df_accuracy = data.frame( Model = gsub(pattern = "Actuals vs Forecasts \\(|\\)", replacement = "", x = x$Plot_Actual_Predictions$labels$title),
+    df_accuracy = data.frame( Model = gsub(pattern = "Actuals vs Forecasts \\(|\\)", replacement = "", x = x$Plots$Plot_Actual_Predictions_Best$labels$title),
                        Error_Type = paste0(results_type, " (", interval_agg, ")"),
                        Period_Tested = paste0(min(x$Actuals_vs_Predictions_Best$Date[x$Actuals_vs_Predictions_Best$train == 0]), " to ", max(x$Actuals_vs_Predictions_Best$Date[x$Actuals_vs_Predictions_Best$train == 0])),
                        regressor1 = x$Best_Parameters$regressor1,
@@ -143,7 +143,7 @@ Accuracies_Agg = function(Prophet_Results, interval_agg = NULL, results_type = "
       ggplot2::scale_y_continuous("\nActuals/Forecasts\n", labels = scales::comma_format()) +
       ggplot2::scale_x_date(name = "\nDate", breaks = scales::date_breaks("2 months")) +
       #ggthemes::scale_color_tableau(palette = 'tableau10medium') +
-      ggplot2::ggtitle(label = x$Plot_Actual_Predictions$labels$title, subtitle = x$Plot_Actual_Predictions$labels$subtitle) +
+      ggplot2::ggtitle(label = x$Plots$Plot_Actual_Predictions_Best$labels$title, subtitle = x$Plots$Plot_Actual_Predictions_Best$labels$subtitle) +
       ggplot2::theme(legend.position = "bottom")
 
 
