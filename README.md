@@ -39,6 +39,7 @@ sessions_prophet_wrapper = ProphetWrapper::Prophet_Wrapper(  df = ProphetWrapper
                                                                  best_model_in = "test",
                                                                  main_accuracy_metric = "MAPE",
                                                                  final_predictions = 20,
+                                                                 testing_period = 20,
                                                                  plotFrom = "2017-01-01",
                                                                  seed = 9999,
                                                                  debug = FALSE,

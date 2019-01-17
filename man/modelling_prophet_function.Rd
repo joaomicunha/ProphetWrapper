@@ -8,8 +8,9 @@ modelling_prophet_function(df_all_modelling, df_test_modelling,
   df_train_modelling, modelling_type, list_params_modelling,
   changepoint.prior.scale.modelling, holidays.prior.scale.modelling,
   regressor.prior.scale.modelling, seasonality.prior.scale.modelling,
-  regressor1.modelling, regressor2.modelling, judgmental_forecasts.modelling,
-  holidays_modelling, final_predictions_modelling, debug_modelling)
+  regressor1.modelling, regressor2.modelling,
+  judgmental_forecasts.modelling, holidays_modelling,
+  final_predictions_modelling, debug_modelling)
 }
 \arguments{
 \item{df_all_modelling}{All data}

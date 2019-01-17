@@ -70,25 +70,30 @@
 #' @examples
 #' \dontrun{
 #'
-#' parameters = list(changepoint.prior.scale = c(0.2, 0.3),
-#' regressor.prior.scale = c(0.01, 0.02),
-#' weekly.seasonality = TRUE,
-#' yearly.seasonality = TRUE,
-#' daily.seasonality = TRUE,
-#' standardize_regressor = TRUE,
-#' log_transformation = TRUE,
-#' target_variable = "y",
-#' regressor1 = "x",
-#' regressor2 = "z" )
+#'parameters_models = list( changepoint.prior.scale =  c(0.001, 0.01),
+#'                          holidays.prior.scale = c(1, 25),
+#'                         seasonality.prior.scale = c(10, 15),
+#'                          regressor.prior.scale = c(0.05),
+#'                          weekly.seasonality = TRUE,
+#'                          yearly.seasonality = TRUE,
+#'                          daily.seasonality = TRUE,
+#'                          standardize_regressor = TRUE,
+#'                          log_transformation = TRUE,
+#'                          target_variable = "sessions",
+#'                          regressor1 = c("no_regressor"),
+#'                          regressor2 = c("no_regressor"))
 #'
 #'
-#'test = Prophet_Wrapper(df = df_example,
-#'                     list_params = parameters,
-#'                     holidays = holidays,
-#'                     best_model_in = "train",
-#'                     main_accuracy_metric = "MAPE",
-#'                     train_set_imp_perc = 0.5,
-#'                     final_predictions = list(forecasts_inbound_all, forecasts_offered_all)
+#'sessions_prophet_wrapper = ProphetWrapper::Prophet_Wrapper(  df = ProphetWrapper::sessions,
+#'                                                             list_params = parameters_models,
+#'                                                             best_model_in = "test",
+#'                                                             main_accuracy_metric = "MAPE",
+#'                                                             final_predictions = 20,
+#'                                                             testing_period = 20,
+#'                                                             plotFrom = "2017-01-01",
+#'                                                             seed = 9999,
+#'                                                             debug = FALSE,
+#'                                                             parallel = FALSE)
 #'
 #'}
 #'
